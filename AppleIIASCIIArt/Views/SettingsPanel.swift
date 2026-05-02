@@ -14,6 +14,7 @@ struct SettingsPanel: View {
                 phosphorSection
             }
             .padding(16)
+            .padding(.trailing, 5)
         }
         .frame(minWidth: 230, maxWidth: 270)
         .background(Color(NSColor.controlBackgroundColor))
