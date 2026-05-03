@@ -63,8 +63,8 @@ Each disk carries:
 ## Build & run
 
 ```sh
-git clone https://github.com/portwally/Apple-II-ASCII-Art.git
-cd Apple-II-ASCII-Art
+git clone https://github.com/portwally/1977.git
+cd 1977
 open AppleIIASCIIArt.xcodeproj
 ```
 

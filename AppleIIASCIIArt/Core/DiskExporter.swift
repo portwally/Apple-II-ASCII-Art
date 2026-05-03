@@ -123,7 +123,7 @@ struct DiskExporter {
         src += "105 HTAB 1\r"
         src += "110 PRINT \"  2026 WALTER TENGLER\"\r"
         src += "115 HTAB 1\r"
-        src += "120 PRINT \"GITHUB.COM/PORTWALLY/APPLE-II-ASCII-ART\";\r"
+        src += "120 PRINT \"GITHUB.COM/PORTWALLY/1977\";\r"
         // Move cursor back next to the SELECT prompt for the GET.
         src += "130 VTAB 9\r"
         src += "135 HTAB 15\r"
