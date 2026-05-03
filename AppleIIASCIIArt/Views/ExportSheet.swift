@@ -28,7 +28,7 @@ struct ExportSheet: View {
             Group {
                 switch format {
                 case .prodosDisk:
-                    Text("Bootable ProDOS disk with Bitsy Bye launcher, a tokenized BASIC PRINT program, a binary screen-memory dump, and a BASIC loader that BLOADs the dump directly to the text screen — fast on real hardware. Mount in any Apple II emulator (Virtual II, OpenEmu, AppleWin) or write to a real disk.")
+                    Text("Bootable ProDOS disk with Bitsy Bye launcher and a tokenized Applesoft BASIC program (ART.BAS). Boot the disk, pick ART.BAS from the menu, and the art prints to the screen. Mount in any Apple II emulator (Virtual II, OpenEmu, AppleWin) or write to a real disk.")
                 case .appleIIText:
                     Text("Plain text with CR (0x0D) line endings. Transfer to Apple II via ADT Pro or similar and TYPE the file.")
                 case .macText:
