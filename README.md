@@ -1,8 +1,10 @@
-# Apple II ASCII Art
+# 1977
+
+> The year the Apple II shipped.
 
 A native macOS app that converts any image into Apple II ASCII art — in **40-column** or **80-column** text mode — and previews it on screen the way it would look on a real Apple II, using authentic period fonts and a phosphor-glow display.
 
-Output can be exported as a plain text file ready to `TYPE` on a real Apple II, or as a runnable Applesoft BASIC program.
+Output can be saved as a bootable ProDOS disk image, plain text ready to `TYPE` on a real Apple II, or a runnable Applesoft BASIC program.
 
 <p align="center">
   <img src="docs/images/preview-green-custom.png" width="640" alt="Green phosphor preview, custom character ramp">
