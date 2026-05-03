@@ -97,14 +97,9 @@ struct HelpView: View {
 
                 // MARK: - Footer
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("© 2026 Walter Tengler")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Link("github.com/portwally/1977",
-                         destination: URL(string: "https://github.com/portwally/1977")!)
-                        .font(.caption)
-                }
+                Text("© 2026 Walter Tengler")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             .padding(32)
             .frame(maxWidth: 720)
