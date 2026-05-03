@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		F037ABCBC85147D9BBCFCB57 /* AppleIIASCIIArt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppleIIASCIIArt.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F037ABCBC85147D9BBCFCB57 /* AppleIIASCIIArt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = AppleIIASCIIArt.app; path = 1977.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -260,7 +260,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ATSApplicationFontsPath = .;
-				INFOPLIST_KEY_CFBundleDisplayName = "1977";
+				INFOPLIST_KEY_CFBundleDisplayName = 1977;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Walter Tengler";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -269,7 +269,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = portwally.app1977;
-				PRODUCT_NAME = "1977";
+				PRODUCT_NAME = 1977;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};
@@ -292,7 +292,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_ATSApplicationFontsPath = .;
-				INFOPLIST_KEY_CFBundleDisplayName = "1977";
+				INFOPLIST_KEY_CFBundleDisplayName = 1977;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.graphics-design";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 Walter Tengler";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -301,7 +301,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = portwally.app1977;
-				PRODUCT_NAME = "1977";
+				PRODUCT_NAME = 1977;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
