@@ -1,19 +1,27 @@
 import Foundation
 
-/// Builds an Apple II ProDOS disk image (.po) containing the ASCII art result
-/// as a tokenized Applesoft BASIC program.
+/// Builds an Apple II ProDOS disk image (.po) containing the ASCII art result.
 ///
 /// The base image is the bundled `ProDOS_2_4_3.po`, which carries Bitsy Bye as
 /// a launcher — when booted on real hardware or in an emulator, Bitsy Bye lists
 /// every program on the disk and lets the user pick one.
 ///
-/// Output:
-///   - ART.BAS — tokenized PRINT program. Auto-emits `PR#3` for 80-col mode.
+/// 40-col output produces:
+///   - ART.BAS    — tokenized PRINT program (slow but reliable)
+///   - ART.BIN    — 1024-byte $0400-format dump (aux=$2000, NOT $0400)
+///   - LOADER.BAS — POKEs a 30-byte 6502 copier to $0300, BLOADs ART.BIN to
+///                  $2000, CALL 768 copies it to text page 1
 ///
-/// (BLOAD-based fast loaders were tried but ProDOS reports
-/// "NO BUFFERS AVAILABLE" under Bitsy Bye, and there is no portable BASIC
-/// command to release the buffer pool — `MAXFILES` is DOS 3.3, not ProDOS.
-/// The PRINT-based program is slower but rock-solid.)
+/// 80-col output produces:
+///   - ART.BAS      — tokenized PRINT program (auto-emits PR#3)
+///   - ART80.BIN    — 2048-byte combined dump (aux=$2000)
+///   - LOADER80.BAS — POKEs the 52-byte AUX-bank-switch loader to $0300, PR#3,
+///                    BLOADs ART80.BIN to $2000, CALL 768 splits it into
+///                    AUX/MAIN $0400
+///
+/// The ML copiers are embedded as inline DATA in the BASIC loaders (rather
+/// than separate BIN files) so we only need ONE BLOAD per program — fewer
+/// chances to hit BASIC.SYSTEM's "NO BUFFERS AVAILABLE" error.
 struct DiskExporter {
 
     enum DiskExportError: Error, LocalizedError {
@@ -30,7 +38,8 @@ struct DiskExporter {
         }
     }
 
-    /// Async — copies the bundled template to `url`, then adds ART.BAS.
+    /// Async — copies the bundled template to `url`, then adds the relevant
+    /// files for the result's column mode.
     static func save(_ result: ASCIIResult, to url: URL) async throws {
         // Locate the bundled template
         guard let templateURL = Bundle.main.url(forResource: "ProDOS_2_4_3", withExtension: "po") else {
@@ -54,11 +63,79 @@ struct DiskExporter {
             }
         }
 
-        // Step 2 — tokenize and add the BASIC PRINT program
+        // Step 2 — tokenize and add the BASIC PRINT program (always)
         let printSource = BASICExporter.generateSource(result)
         let printTokens = ApplesoftTokenizer.tokenize(printSource)
         try await addFile(to: url, name: "ART.BAS",
                           data: printTokens, type: 0xFC, aux: 0x0801)
+
+        // Step 3 — add the binary dump + BLOAD-based loader
+        if result.columns == 40 {
+            // 40-col: 1024-byte $400-format dump at $2000
+            let bin = AppleIIScreenMemory.buildScreen40(grid: result.grid)
+            try await addFile(to: url, name: "ART.BIN",
+                              data: bin, type: 0x06, aux: 0x2000)
+
+            let loaderTokens = ApplesoftTokenizer.tokenize(loaderSource40())
+            try await addFile(to: url, name: "LOADER.BAS",
+                              data: loaderTokens, type: 0xFC, aux: 0x0801)
+        } else {
+            // 80-col: 2048-byte combined dump (1024 AUX + 1024 MAIN) at $2000
+            let bin = AppleIIScreenMemory.buildScreen80(grid: result.grid)
+            try await addFile(to: url, name: "ART80.BIN",
+                              data: bin, type: 0x06, aux: 0x2000)
+
+            let loaderTokens = ApplesoftTokenizer.tokenize(loaderSource80())
+            try await addFile(to: url, name: "LOADER80.BAS",
+                              data: loaderTokens, type: 0xFC, aux: 0x0801)
+        }
+    }
+
+    // MARK: - Loader source
+
+    /// 40-col BASIC loader. POKEs the 30-byte copier to $0300, BLOADs
+    /// ART.BIN to $2000, then CALL 768 copies $2000-$23FF to $0400-$07FF.
+    private static func loaderSource40() -> String {
+        let copierBytes = AppleIIScreenMemory.loader40
+        let dataLines = AppleIIScreenMemory.dataLines(
+            for: copierBytes, startingAtLine: 30, lineStep: 10, bytesPerLine: 8
+        )
+
+        var src = ""
+        src += "10 HOME\r"
+        src += "20 FOR I = 0 TO \(copierBytes.count - 1): READ B: POKE 768+I,B: NEXT I\r"
+        src += dataLines
+        // After dataLines, line numbers continue from (30 + 10*ceil(bytes/8))
+        let nextLine = 30 + 10 * Int(ceil(Double(copierBytes.count) / 8.0))
+        src += "\(nextLine + 0) PRINT CHR$(4);\"BLOAD ART.BIN,A$2000\"\r"
+        src += "\(nextLine + 10) CALL 768\r"
+        src += "\(nextLine + 20) GET A$\r"
+        src += "\(nextLine + 30) HOME"
+        return src
+    }
+
+    /// 80-col BASIC loader. PR#3, POKEs the 52-byte AUX bank-switch loader to
+    /// $0300, BLOADs ART80.BIN to $2000, CALL 768 splits the 2048 bytes into
+    /// AUX $0400 (first 1024) and MAIN $0400 (next 1024).
+    private static func loaderSource80() -> String {
+        let copierBytes = AppleIIScreenMemory.loader80
+        let dataLines = AppleIIScreenMemory.dataLines(
+            for: copierBytes, startingAtLine: 30, lineStep: 10, bytesPerLine: 8
+        )
+
+        var src = ""
+        src += "10 PRINT CHR$(4);\"PR#3\"\r"
+        src += "15 HOME\r"
+        src += "20 FOR I = 0 TO \(copierBytes.count - 1): READ B: POKE 768+I,B: NEXT I\r"
+        src += dataLines
+        let nextLine = 30 + 10 * Int(ceil(Double(copierBytes.count) / 8.0))
+        src += "\(nextLine + 0) PRINT CHR$(4);\"BLOAD ART80.BIN,A$2000\"\r"
+        src += "\(nextLine + 10) CALL 768\r"
+        src += "\(nextLine + 20) GET A$\r"
+        src += "\(nextLine + 30) PRINT CHR$(4);\"PR#0\"\r"
+        src += "\(nextLine + 40) TEXT\r"
+        src += "\(nextLine + 50) HOME"
+        return src
     }
 
     // MARK: - Helper

@@ -80,6 +80,28 @@ enum AppleIIScreenMemory {
     ///   4. Copy 1024 bytes from $2400 → $0400 (in MAIN)
     ///
     /// CALL 768 from BASIC to invoke.
+    /// 6502 unrolled-loop copier for 40-col mode.
+    ///
+    /// Loads at $0300 (30 bytes). Expects 1024 bytes of $0400-format text-page
+    /// data already present at $2000-$23FF (BLOAD'd before calling). Copies
+    /// the four pages to $0400-$07FF using a single X register.
+    ///
+    /// CALL 768 from BASIC to invoke.
+    static let loader40: Data = Data([
+        0xA2, 0x00,              // LDX #$00
+        0xBD, 0x00, 0x20,        // LDA $2000,X
+        0x9D, 0x00, 0x04,        // STA $0400,X
+        0xBD, 0x00, 0x21,        // LDA $2100,X
+        0x9D, 0x00, 0x05,        // STA $0500,X
+        0xBD, 0x00, 0x22,        // LDA $2200,X
+        0x9D, 0x00, 0x06,        // STA $0600,X
+        0xBD, 0x00, 0x23,        // LDA $2300,X
+        0x9D, 0x00, 0x07,        // STA $0700,X
+        0xE8,                    // INX
+        0xD0, 0xE5,              // BNE -27 (back to LDA $2000,X)
+        0x60                     // RTS
+    ])
+
     static let loader80: Data = Data([
         // setup pointers
         0xA9, 0x00,        // LDA #$00
@@ -112,6 +134,25 @@ enum AppleIIScreenMemory {
         0xD0, 0xF0,        // BNE -16    ; back to LDY #$00
         0x60               // RTS
     ])
+
+    /// Format a byte buffer as a sequence of Applesoft `DATA` lines.
+    /// Used by the LOADER.BAS programs to embed a small ML routine inline,
+    /// avoiding a second BLOAD (and the BASIC.SYSTEM file-buffer pool that
+    /// goes with it).
+    static func dataLines(for bytes: Data, startingAtLine startLine: Int,
+                          lineStep: Int = 10, bytesPerLine: Int = 8) -> String {
+        var out = ""
+        var line = startLine
+        var i = 0
+        while i < bytes.count {
+            let end = min(i + bytesPerLine, bytes.count)
+            let nums = (i..<end).map { String(bytes[$0]) }.joined(separator: ",")
+            out += "\(line) DATA \(nums)\r"
+            line += lineStep
+            i = end
+        }
+        return out
+    }
 
     // MARK: - Helpers
 
