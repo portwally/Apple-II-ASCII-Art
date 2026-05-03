@@ -22,6 +22,13 @@ struct BASICExporter {
         var lines: [String] = []
         var num = 10
 
+        // The bundled ProDOS 2.0.3 template's BASIC.SYSTEM appears to leave
+        // TRACE enabled across program transitions. Without an explicit
+        // NOTRACE, Applesoft prints "#NN" before every line — which during a
+        // 24-line PRINT loop interleaves "#50 #60 #70…" between every row of
+        // art on screen.
+        lines.append("5 NOTRACE")
+
         lines.append("\(num) HOME")
         num += 10
 
