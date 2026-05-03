@@ -165,6 +165,7 @@ struct DiskExporter {
         src += "40 POKE 768 + I, B\r"
         src += "50 NEXT I\r"
         src += "60 PR# 3\r"
+        src += "65 NOTRACE\r"        // PR# 3 re-enables TRACE on this BASIC.SYSTEM
         src += "70 HOME\r"
         src += "80 PRINT CHR$(4);\"BLOAD ART80.BIN,A$4000\"\r"
         src += "90 CALL 768\r"

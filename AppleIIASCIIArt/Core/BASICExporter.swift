@@ -35,6 +35,10 @@ struct BASICExporter {
         if result.columns == 80 {
             lines.append("\(num) PR# 3")
             num += 10
+            // PR# 3 (slot 3 firmware init) re-enables TRACE on this BASIC.SYSTEM.
+            // 40-col path doesn't have this issue. Repeat NOTRACE after PR# 3.
+            lines.append("\(num) NOTRACE")
+            num += 10
         }
 
         let totalRows = result.grid.count
