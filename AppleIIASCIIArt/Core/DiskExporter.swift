@@ -116,9 +116,11 @@ struct DiskExporter {
         return src.trimmingCharacters(in: .newlines)
     }
 
-    /// 80-col BASIC loader. PR#3, POKEs the 58-byte AUX bank-switch loader to
-    /// $0300, BLOADs ART80.BIN to $2000, CALL 768 splits the 2048 bytes into
-    /// AUX $0400 (first 1024) and MAIN $0400 (next 1024).
+    /// 80-col BASIC loader. PR# 3 (Applesoft token, NOT BASIC.SYSTEM's
+    /// CHR$(4);"PR#3" — the latter just redirects output without fully
+    /// initializing 80-col mode in some BASIC.SYSTEM versions). POKEs the
+    /// 52-byte loader to $0300, BLOADs ART80.BIN to $4000, CALL 768 splits
+    /// the 2048 bytes into AUX $0400 (first 1024) and MAIN $0400 (next 1024).
     private static func loaderSource80() -> String {
         let copier    = AppleIIScreenMemory.loader80
         let dataStart = 200
@@ -127,7 +129,7 @@ struct DiskExporter {
         )
 
         var src = ""
-        src += "10 PRINT CHR$(4);\"PR#3\"\r"
+        src += "10 PR# 3\r"
         src += "20 HOME\r"
         src += "30 FOR I = 0 TO \(copier.count - 1)\r"
         src += "40 READ B\r"
@@ -136,7 +138,7 @@ struct DiskExporter {
         src += "70 PRINT CHR$(4);\"BLOAD ART80.BIN,A$4000\"\r"
         src += "80 CALL 768\r"
         src += "90 GET A$\r"
-        src += "100 PRINT CHR$(4);\"PR#0\"\r"
+        src += "100 PR# 0\r"
         src += "110 TEXT\r"
         src += "120 HOME\r"
         src += data            // 200, 210, …
