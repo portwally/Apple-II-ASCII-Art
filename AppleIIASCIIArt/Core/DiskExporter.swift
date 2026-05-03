@@ -116,11 +116,14 @@ struct DiskExporter {
         return src.trimmingCharacters(in: .newlines)
     }
 
-    /// 80-col BASIC loader. PR# 3 (Applesoft token, NOT BASIC.SYSTEM's
-    /// CHR$(4);"PR#3" — the latter just redirects output without fully
-    /// initializing 80-col mode in some BASIC.SYSTEM versions). POKEs the
-    /// 52-byte loader to $0300, BLOADs ART80.BIN to $4000, CALL 768 splits
-    /// the 2048 bytes into AUX $0400 (first 1024) and MAIN $0400 (next 1024).
+    /// 80-col BASIC loader. POKEs the 52-byte loader to $0300 in 40-col
+    /// mode FIRST (the FOR/NEXT loop misbehaves visually under 80-col mode in
+    /// some setups), THEN switches to 80-col with PR# 3, BLOADs ART80.BIN to
+    /// $4000, CALL 768 splits the 2048 bytes into AUX $0400 / MAIN $0400.
+    ///
+    /// PR# 3 here is the Applesoft token (not BASIC.SYSTEM's CHR$(4);"PR#3" —
+    /// the latter doesn't fully initialize 80-col mode in some BASIC.SYSTEM
+    /// versions, even though it sets the output vector).
     private static func loaderSource80() -> String {
         let copier    = AppleIIScreenMemory.loader80
         let dataStart = 200
@@ -129,18 +132,19 @@ struct DiskExporter {
         )
 
         var src = ""
-        src += "10 PR# 3\r"
-        src += "20 HOME\r"
-        src += "30 FOR I = 0 TO \(copier.count - 1)\r"
-        src += "40 READ B\r"
-        src += "50 POKE 768 + I, B\r"
-        src += "60 NEXT I\r"
-        src += "70 PRINT CHR$(4);\"BLOAD ART80.BIN,A$4000\"\r"
-        src += "80 CALL 768\r"
-        src += "90 GET A$\r"
-        src += "100 PR# 0\r"
-        src += "110 TEXT\r"
-        src += "120 HOME\r"
+        src += "10 HOME\r"
+        src += "20 FOR I = 0 TO \(copier.count - 1)\r"
+        src += "30 READ B\r"
+        src += "40 POKE 768 + I, B\r"
+        src += "50 NEXT I\r"
+        src += "60 PR# 3\r"
+        src += "70 HOME\r"
+        src += "80 PRINT CHR$(4);\"BLOAD ART80.BIN,A$4000\"\r"
+        src += "90 CALL 768\r"
+        src += "100 GET A$\r"
+        src += "110 PR# 0\r"
+        src += "120 TEXT\r"
+        src += "130 HOME\r"
         src += data            // 200, 210, …
         return src.trimmingCharacters(in: .newlines)
     }
