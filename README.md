@@ -27,9 +27,31 @@ Three classic phosphor looks — green, amber, and white.
 - **Aspect-ratio-correct sampling** — input images are mapped onto the Apple II's 280 × 192 display space using BT.709 perceptual luminance, so the output looks right when displayed on real hardware.
 - **Drag-and-drop import** for PNG, JPEG, TIFF, GIF, BMP, HEIC.
 - **Export formats:**
+  - **Apple II Disk Image** (`.po`) — bootable ProDOS disk with a STARTUP launcher and both 40-col and 80-col renderings. Mount in any Apple II emulator (Virtual II, OpenEmu, AppleWin) or write to a real floppy.
   - **Apple II Text** (`.txt`, 7-bit ASCII, CR / `0x0D` line endings) — drop onto a ProDOS disk and `TYPE` it.
   - **Mac Text** (`.txt`, LF endings) — for editing on the Mac.
   - **Applesoft BASIC** (`.bas`, `PRINT` program) — auto-inserts `PR# 3` for 80-column output.
+
+## Export options
+
+<p align="center">
+  <img src="docs/images/export-sheet.png" width="640" alt="Export sheet showing Apple II Disk Image, text and BASIC options">
+</p>
+
+## Disk creation
+
+Picking **Apple II Disk Image** writes a bootable ProDOS volume containing six programs and a STARTUP launcher. Boot it on real hardware or any Apple II emulator and you'll land on this menu:
+
+<p align="center">
+  <img src="docs/images/disk-launcher.png" width="640" alt="STARTUP launcher menu running on the booted Apple II disk">
+</p>
+
+Each disk carries:
+
+- **ART40 / ART80** — slow `PRINT`-based programs (one statement per row) you can `LIST` and read.
+- **LOADER40 / LOADER80** — fast versions: a small embedded 6502 ML routine `BLOAD`s the screen-memory dump straight to text page 1 and (for 80-col) bank-switches into AUX RAM via `PAGE2`.
+- **ART40.BIN / ART80.BIN** — raw screen-memory dumps the loaders BLOAD.
+- **STARTUP** — auto-runs at boot, shows the picker, smart-RUNs the chosen program with `PRINT CHR$(4);"-FILENAME"`.
 
 ## Requirements
 
