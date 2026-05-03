@@ -103,7 +103,8 @@ struct DiskExporter {
     /// Layout: menu and SELECT prompt at the top, credit pinned to rows 23-24
     /// at the bottom of the screen via VTAB. The bottom-row PRINT uses a
     /// trailing `;` so its 39-char URL doesn't auto-wrap and scroll the
-    /// screen.
+    /// screen. All statements live on their own line — multi-statement lines
+    /// were tripping up Applesoft on this BASIC.SYSTEM build.
     private static func startupSource() -> String {
         var src = ""
         src += "5 NOTRACE\r"
@@ -117,18 +118,22 @@ struct DiskExporter {
         src += "80 PRINT \"  4) LOADER80 (80 COL, FAST)\"\r"
         src += "85 PRINT\r"
         src += "90 PRINT \"  SELECT 1-4: \";\r"
-        // Credit line, pinned to the bottom two rows of the 24-row screen.
-        src += "100 VTAB 23: HTAB 1: PRINT \"  2026 WALTER TENGLER\"\r"
-        src += "110 HTAB 1: PRINT \"GITHUB.COM/PORTWALLY/APPLE-II-ASCII-ART\";\r"
+        // Credit pinned to the bottom two rows of the 24-row screen.
+        src += "100 VTAB 23\r"
+        src += "105 HTAB 1\r"
+        src += "110 PRINT \"  2026 WALTER TENGLER\"\r"
+        src += "115 HTAB 1\r"
+        src += "120 PRINT \"GITHUB.COM/PORTWALLY/APPLE-II-ASCII-ART\";\r"
         // Move cursor back next to the SELECT prompt for the GET.
-        src += "120 VTAB 9: HTAB 15\r"
-        src += "130 GET A$\r"
-        src += "140 PRINT A$\r"
-        src += "150 IF A$ = \"1\" THEN PRINT CHR$(4);\"-ART40.BAS\"\r"
-        src += "160 IF A$ = \"2\" THEN PRINT CHR$(4);\"-LOADER40.BAS\"\r"
-        src += "170 IF A$ = \"3\" THEN PRINT CHR$(4);\"-ART80.BAS\"\r"
-        src += "180 IF A$ = \"4\" THEN PRINT CHR$(4);\"-LOADER80.BAS\"\r"
-        src += "190 GOTO 10"
+        src += "130 VTAB 9\r"
+        src += "135 HTAB 15\r"
+        src += "140 GET A$\r"
+        src += "150 PRINT A$\r"
+        src += "160 IF A$ = \"1\" THEN PRINT CHR$(4);\"-ART40.BAS\"\r"
+        src += "170 IF A$ = \"2\" THEN PRINT CHR$(4);\"-LOADER40.BAS\"\r"
+        src += "180 IF A$ = \"3\" THEN PRINT CHR$(4);\"-ART80.BAS\"\r"
+        src += "190 IF A$ = \"4\" THEN PRINT CHR$(4);\"-LOADER80.BAS\"\r"
+        src += "200 GOTO 10"
         return src
     }
 
