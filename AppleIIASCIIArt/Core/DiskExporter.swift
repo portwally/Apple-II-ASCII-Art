@@ -103,6 +103,7 @@ struct DiskExporter {
         )
 
         var src = ""
+        src += "5 NOTRACE\r"   // Bitsy Bye on this template leaves TRACE on
         src += "10 HOME\r"
         src += "20 FOR I = 0 TO \(copier.count - 1)\r"
         src += "30 READ B\r"
@@ -116,31 +117,34 @@ struct DiskExporter {
         return src.trimmingCharacters(in: .newlines)
     }
 
-    /// 80-col BASIC loader. Emits the 52-byte ML routine as inline POKE
-    /// statements (one POKE per byte) — the FOR/READ/POKE/NEXT/DATA pattern
-    /// caused visible data spew in the user's emulator with the larger
-    /// 80-col routine. Then switches to 80-col with the Applesoft PR# token,
-    /// BLOADs ART80.BIN to $4000, CALL 768 splits the 2048 bytes into
-    /// AUX $0400 / MAIN $0400.
+    /// 80-col BASIC loader. POKEs the 52-byte loader to $0300 in 40-col mode
+    /// FIRST, then PR# 3 (Applesoft token) switches to 80-col, BLOADs
+    /// ART80.BIN to $4000, CALL 768 splits the 2048 bytes into AUX $0400 /
+    /// MAIN $0400.
     private static func loaderSource80() -> String {
-        let copier = AppleIIScreenMemory.loader80
+        let copier    = AppleIIScreenMemory.loader80
+        let dataStart = 200
+        let data      = AppleIIScreenMemory.dataLines(
+            for: copier, startingAtLine: dataStart, lineStep: 10, bytesPerLine: 8
+        )
 
-        var src = "10 HOME\r"
-        var lineNum = 20
-        for (offset, byte) in copier.enumerated() {
-            let addr = 768 + offset
-            src += "\(lineNum) POKE \(addr),\(byte)\r"
-            lineNum += 10
-        }
-        src += "\(lineNum) PR# 3\r";       lineNum += 10
-        src += "\(lineNum) HOME\r";        lineNum += 10
-        src += "\(lineNum) PRINT CHR$(4);\"BLOAD ART80.BIN,A$4000\"\r"; lineNum += 10
-        src += "\(lineNum) CALL 768\r";    lineNum += 10
-        src += "\(lineNum) GET A$\r";      lineNum += 10
-        src += "\(lineNum) PR# 0\r";       lineNum += 10
-        src += "\(lineNum) TEXT\r";        lineNum += 10
-        src += "\(lineNum) HOME"
-        return src
+        var src = ""
+        src += "5 NOTRACE\r"   // Bitsy Bye on this template leaves TRACE on
+        src += "10 HOME\r"
+        src += "20 FOR I = 0 TO \(copier.count - 1)\r"
+        src += "30 READ B\r"
+        src += "40 POKE 768 + I, B\r"
+        src += "50 NEXT I\r"
+        src += "60 PR# 3\r"
+        src += "70 HOME\r"
+        src += "80 PRINT CHR$(4);\"BLOAD ART80.BIN,A$4000\"\r"
+        src += "90 CALL 768\r"
+        src += "100 GET A$\r"
+        src += "110 PR# 0\r"
+        src += "120 TEXT\r"
+        src += "130 HOME\r"
+        src += data            // 200, 210, …
+        return src.trimmingCharacters(in: .newlines)
     }
 
     // MARK: - Helper
