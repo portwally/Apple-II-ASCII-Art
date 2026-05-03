@@ -73,7 +73,7 @@ struct DiskExporter {
                               data: bin, type: 0x06, aux: 0x0400)
 
             let loaderSrc =
-                "10 PRINT CHR$(4);\"CLOSE\"\r"               +
+                "10 PRINT CHR$(4);\"MAXFILES 3\"\r"          +
                 "20 HOME\r"                                   +
                 "30 PRINT CHR$(4);\"BLOAD ART.BIN\"\r"        +
                 "40 GET A$\r"                                 +
@@ -93,7 +93,7 @@ struct DiskExporter {
                               type: 0x06, aux: 0x0300)
 
             let loaderSrc =
-                "10 PRINT CHR$(4);\"CLOSE\"\r"               +
+                "10 PRINT CHR$(4);\"MAXFILES 3\"\r"          +
                 "20 PRINT CHR$(4);\"PR#3\"\r"                +
                 "30 PRINT CHR$(4);\"BLOAD ART80.BIN\"\r"     +
                 "40 PRINT CHR$(4);\"BLOAD ART80.LDR\"\r"     +
