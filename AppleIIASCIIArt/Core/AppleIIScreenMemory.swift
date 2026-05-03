@@ -102,49 +102,49 @@ enum AppleIIScreenMemory {
         0x60                     // RTS
     ])
 
-    /// 6502 machine-code loader for 80-col mode (58 bytes, loads at $0300).
+    /// 6502 machine-code loader for 80-col mode (52 bytes, loads at $0300).
     ///
-    /// Expects 2048 bytes already at $2000-$27FF (BLOAD'd before calling).
+    /// Expects 2048 bytes already at $4000-$47FF (BLOAD'd before calling).
     /// Splits the dump into AUX $0400 (first 1024) and MAIN $0400 (next 1024).
     ///
-    /// PR#3 leaves 80STORE on, which makes PAGE2 (not RAMWRT) the bank-switch
-    /// for $0400 — but PAGE2 also bank-switches $2000, which is our SOURCE.
-    /// So we turn 80STORE off briefly, do the copy with the simple RAMWRT
-    /// switch, then turn 80STORE back on. Display stays in 80-col throughout
-    /// (80COL controls video; 80STORE only affects CPU access).
+    /// Why $4000 instead of $2000 as the source: PR#3 leaves 80STORE on, which
+    /// makes PAGE2 (not RAMWRT) the bank-switch for $0400-$07FF AND $2000-$3FFF.
+    /// If we toggle PAGE2 to redirect $0400 writes to AUX, we'd ALSO redirect
+    /// $2000 reads to AUX (where there's nothing). $4000-$5FFF is HIRES page 2 —
+    /// it's RAMWRT-switched, NOT 80STORE-switched, so PAGE2 has no effect on it.
+    /// Reads from $4000 stay in MAIN while $0400 writes follow PAGE2.
     static let loader80: Data = Data([
         // setup pointers
         0xA9, 0x00,        // [0]  LDA #$00
         0x85, 0x40,        // [2]  STA $40    ; src low
-        0xA9, 0x20,        // [4]  LDA #$20
-        0x85, 0x41,        // [6]  STA $41    ; src high  ($2000)
+        0xA9, 0x40,        // [4]  LDA #$40
+        0x85, 0x41,        // [6]  STA $41    ; src high  ($4000)
         0xA9, 0x00,        // [8]  LDA #$00
         0x85, 0x42,        // [10] STA $42    ; dst low
         0xA9, 0x04,        // [12] LDA #$04
         0x85, 0x43,        // [14] STA $43    ; dst high  ($0400)
-        // copy first 1024 bytes to AUX $400
-        0x8D, 0x00, 0xC0,  // [16] STA $C000  ; 80STORE OFF
-        0x8D, 0x05, 0xC0,  // [19] STA $C005  ; RAMWRTON
-        0x20, 0x27, 0x03,  // [22] JSR $0327  ; copy 1024
-        0x8D, 0x04, 0xC0,  // [25] STA $C004  ; RAMWRTOFF
+        // copy first 1024 bytes to AUX $400 (PAGE2 redirects $400 writes to AUX
+        // when 80STORE is on, which it is after PR#3)
+        0x8D, 0x55, 0xC0,  // [16] STA $C055  ; PAGE2 ON
+        0x20, 0x21, 0x03,  // [19] JSR $0321  ; copy 1024
+        0x8D, 0x54, 0xC0,  // [22] STA $C054  ; PAGE2 OFF
         // reset dst high to $04 ($43 was incremented to $08)
-        0xA9, 0x04,        // [28] LDA #$04
-        0x85, 0x43,        // [30] STA $43
-        0x20, 0x27, 0x03,  // [32] JSR $0327  ; copy next 1024 to MAIN $400
-        0x8D, 0x01, 0xC0,  // [35] STA $C001  ; 80STORE ON (restore)
-        0x60,              // [38] RTS
-        // COPY routine at $0327
-        0xA2, 0x04,        // [39] LDX #$04   ; 4 pages
-        0xA0, 0x00,        // [41] LDY #$00
-        0xB1, 0x40,        // [43] LDA ($40),Y
-        0x91, 0x42,        // [45] STA ($42),Y
-        0xC8,              // [47] INY
-        0xD0, 0xF9,        // [48] BNE -7     ; back to LDA ($40),Y
-        0xE6, 0x41,        // [50] INC $41
-        0xE6, 0x43,        // [52] INC $43
-        0xCA,              // [54] DEX
-        0xD0, 0xF0,        // [55] BNE -16    ; back to LDY #$00
-        0x60               // [57] RTS
+        0xA9, 0x04,        // [25] LDA #$04
+        0x85, 0x43,        // [27] STA $43
+        0x20, 0x21, 0x03,  // [29] JSR $0321  ; copy next 1024 to MAIN $400
+        0x60,              // [32] RTS
+        // COPY routine at $0321
+        0xA2, 0x04,        // [33] LDX #$04   ; 4 pages
+        0xA0, 0x00,        // [35] LDY #$00
+        0xB1, 0x40,        // [37] LDA ($40),Y
+        0x91, 0x42,        // [39] STA ($42),Y
+        0xC8,              // [41] INY
+        0xD0, 0xF9,        // [42] BNE -7     ; back to LDA ($40),Y
+        0xE6, 0x41,        // [44] INC $41
+        0xE6, 0x43,        // [46] INC $43
+        0xCA,              // [48] DEX
+        0xD0, 0xF0,        // [49] BNE -16    ; back to LDY #$00
+        0x60               // [51] RTS
     ])
 
     /// Format a byte buffer as a sequence of Applesoft `DATA` lines.

@@ -84,7 +84,7 @@ struct DiskExporter {
 
         let bin80 = AppleIIScreenMemory.buildScreen80(grid: result80.grid)
         try await addFile(to: url, name: "ART80.BIN",
-                          data: bin80, type: 0x06, aux: 0x2000)
+                          data: bin80, type: 0x06, aux: 0x4000)
 
         let loader80Tokens = ApplesoftTokenizer.tokenize(loaderSource80())
         try await addFile(to: url, name: "LOADER80.BAS",
@@ -133,7 +133,7 @@ struct DiskExporter {
         src += "40 READ B\r"
         src += "50 POKE 768 + I, B\r"
         src += "60 NEXT I\r"
-        src += "70 PRINT CHR$(4);\"BLOAD ART80.BIN,A$2000\"\r"
+        src += "70 PRINT CHR$(4);\"BLOAD ART80.BIN,A$4000\"\r"
         src += "80 CALL 768\r"
         src += "90 GET A$\r"
         src += "100 PRINT CHR$(4);\"PR#0\"\r"
