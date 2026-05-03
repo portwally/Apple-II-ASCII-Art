@@ -164,4 +164,21 @@ class ConverterViewModel: ObservableObject {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(result.asPlainText(), forType: .string)
     }
+
+    func exportProDOSDisk() {
+        guard let result else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "po") ?? .data]
+        panel.nameFieldStringValue = "\(sourceImageName.isEmpty ? "ascii_art" : sourceImageName).po"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            Task {
+                do {
+                    try await DiskExporter.save(result, to: url)
+                } catch {
+                    await MainActor.run { self.errorMessage = error.localizedDescription }
+                }
+            }
+        }
+    }
 }

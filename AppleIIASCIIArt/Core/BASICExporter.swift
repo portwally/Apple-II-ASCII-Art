@@ -2,7 +2,9 @@ import Foundation
 
 struct BASICExporter {
 
-    static func save(_ result: ASCIIResult, to url: URL) throws {
+    /// Generates the Applesoft source text for the PRINT program.
+    /// Used both for the .bas file export and for tokenizing onto a ProDOS disk.
+    static func generateSource(_ result: ASCIIResult) -> String {
         var lines: [String] = []
         var num = 10
 
@@ -10,7 +12,6 @@ struct BASICExporter {
         num += 10
 
         if result.columns == 80 {
-            // PR#3 activates the 80-column card on Apple IIe/IIc/IIgs
             lines.append("\(num) PR# 3")
             num += 10
         }
@@ -23,8 +24,12 @@ struct BASICExporter {
 
         lines.append("\(num) END")
 
-        let program = lines.joined(separator: "\r")
-        guard let data = program.data(using: .ascii) else {
+        return lines.joined(separator: "\r")
+    }
+
+    static func save(_ result: ASCIIResult, to url: URL) throws {
+        let source = generateSource(result)
+        guard let data = source.data(using: .ascii) else {
             throw ExportError.encodingFailed
         }
         try data.write(to: url)

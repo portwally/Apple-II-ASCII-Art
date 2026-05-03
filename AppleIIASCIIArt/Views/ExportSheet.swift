@@ -3,9 +3,10 @@ import SwiftUI
 struct ExportSheet: View {
     @ObservedObject var vm: ConverterViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var format: ExportFormat = .appleIIText
+    @State private var format: ExportFormat = .prodosDisk
 
     enum ExportFormat: String, CaseIterable, Identifiable {
+        case prodosDisk = "Apple II Disk Image (.po)"
         case appleIIText = "Apple II Text (.txt, CR endings)"
         case macText = "Mac Text (.txt, LF endings)"
         case applesoftBASIC = "Applesoft BASIC (.bas)"
@@ -26,6 +27,8 @@ struct ExportSheet: View {
 
             Group {
                 switch format {
+                case .prodosDisk:
+                    Text("Bootable ProDOS disk with Bitsy Bye launcher, a tokenized BASIC PRINT program, a binary screen-memory dump, and a BASIC loader that BLOADs the dump directly to the text screen — fast on real hardware. Mount in any Apple II emulator (Virtual II, OpenEmu, AppleWin) or write to a real disk.")
                 case .appleIIText:
                     Text("Plain text with CR (0x0D) line endings. Transfer to Apple II via ADT Pro or similar and TYPE the file.")
                 case .macText:
@@ -47,8 +50,9 @@ struct ExportSheet: View {
                 Button("Export…") {
                     dismiss()
                     switch format {
-                    case .appleIIText:   vm.exportText(appleII: true)
-                    case .macText:       vm.exportText(appleII: false)
+                    case .prodosDisk:     vm.exportProDOSDisk()
+                    case .appleIIText:    vm.exportText(appleII: true)
+                    case .macText:        vm.exportText(appleII: false)
                     case .applesoftBASIC: vm.exportBASIC()
                     }
                 }
@@ -57,6 +61,6 @@ struct ExportSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 420, height: 260)
+        .frame(width: 460, height: 320)
     }
 }
