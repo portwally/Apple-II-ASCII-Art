@@ -3,24 +3,22 @@ import Foundation
 /// Builds an Apple II ProDOS disk image (.po) carrying BOTH 40-col and 80-col
 /// renderings of the same image.
 ///
-/// The base image is the bundled `ProDOS_2_4_3.po`, which carries Bitsy Bye as
-/// a launcher — when booted on real hardware or in an emulator, Bitsy Bye lists
-/// every program on the disk and lets the user pick one.
+/// The base image is the bundled `ProDOS_2_0_3.po`. We replace its launcher
+/// with our own STARTUP.BAS — ProDOS BASIC.SYSTEM auto-runs any file named
+/// STARTUP at boot. The launcher displays a menu and lets the user pick which
+/// art program to run.
 ///
-/// Disk contents:
+/// Disk contents (added by the exporter):
+///   - STARTUP      — tokenized launcher (auto-runs on boot)
 ///   - ART40.BAS    — tokenized 40-col PRINT program
 ///   - ART40.BIN    — 1024-byte text-page-1 dump (aux=$2000)
 ///   - LOADER40.BAS — POKEs a 30-byte 6502 copier to $0300, BLOADs ART40.BIN
 ///                    to $2000, CALL 768 copies it to text page 1
 ///   - ART80.BAS    — tokenized 80-col PRINT program (auto-emits PR#3)
-///   - ART80.BIN    — 2048-byte combined dump (aux=$2000)
-///   - LOADER80.BAS — POKEs a 58-byte AUX-bank-switch loader to $0300, PR#3,
-///                    BLOADs ART80.BIN to $2000, CALL 768 splits the 2048
+///   - ART80.BIN    — 2048-byte combined dump (aux=$4000)
+///   - LOADER80.BAS — POKEs a 52-byte AUX-bank-switch loader to $0300, PR# 3,
+///                    BLOADs ART80.BIN to $4000, CALL 768 splits the 2048
 ///                    bytes into AUX/MAIN $0400
-///
-/// The ML copiers are embedded as inline DATA in the BASIC loaders (rather
-/// than separate BIN files) so we only need ONE BLOAD per program — fewer
-/// chances to hit BASIC.SYSTEM's "NO BUFFERS AVAILABLE" error.
 struct DiskExporter {
 
     enum DiskExportError: Error, LocalizedError {
@@ -43,7 +41,7 @@ struct DiskExporter {
                      result80: ASCIIResult,
                      to url: URL) async throws {
         // Locate the bundled template
-        guard let templateURL = Bundle.main.url(forResource: "ProDOS_2_4_3", withExtension: "po") else {
+        guard let templateURL = Bundle.main.url(forResource: "ProDOS_2_0_3", withExtension: "po") else {
             throw DiskExportError.templateMissing
         }
 
@@ -64,7 +62,12 @@ struct DiskExporter {
             }
         }
 
-        // Step 2 — 40-col files
+        // Step 2 — STARTUP launcher (auto-runs on boot, shows the menu)
+        let startupTokens = ApplesoftTokenizer.tokenize(startupSource())
+        try await addFile(to: url, name: "STARTUP",
+                          data: startupTokens, type: 0xFC, aux: 0x0801)
+
+        // Step 3 — 40-col files
         let print40Tokens = ApplesoftTokenizer.tokenize(BASICExporter.generateSource(result40))
         try await addFile(to: url, name: "ART40.BAS",
                           data: print40Tokens, type: 0xFC, aux: 0x0801)
@@ -77,7 +80,7 @@ struct DiskExporter {
         try await addFile(to: url, name: "LOADER40.BAS",
                           data: loader40Tokens, type: 0xFC, aux: 0x0801)
 
-        // Step 3 — 80-col files
+        // Step 4 — 80-col files
         let print80Tokens = ApplesoftTokenizer.tokenize(BASICExporter.generateSource(result80))
         try await addFile(to: url, name: "ART80.BAS",
                           data: print80Tokens, type: 0xFC, aux: 0x0801)
@@ -92,6 +95,32 @@ struct DiskExporter {
     }
 
     // MARK: - Loader source
+
+    /// STARTUP launcher. ProDOS BASIC.SYSTEM auto-runs any file named
+    /// STARTUP at boot. Displays a 4-option menu and uses BASIC.SYSTEM's
+    /// `-` smart-RUN to launch the chosen program.
+    private static func startupSource() -> String {
+        var src = ""
+        src += "5 NOTRACE\r"
+        src += "10 HOME\r"
+        src += "20 PRINT \"      APPLE II ASCII ART\"\r"
+        src += "30 PRINT \"      ===================\"\r"
+        src += "40 PRINT\r"
+        src += "50 PRINT \"  1) ART40    (40 COL, PRINT)\"\r"
+        src += "60 PRINT \"  2) LOADER40 (40 COL, FAST)\"\r"
+        src += "70 PRINT \"  3) ART80    (80 COL, PRINT)\"\r"
+        src += "80 PRINT \"  4) LOADER80 (80 COL, FAST)\"\r"
+        src += "90 PRINT\r"
+        src += "100 PRINT \"  SELECT 1-4: \";\r"
+        src += "110 GET A$\r"
+        src += "120 PRINT A$\r"
+        src += "130 IF A$ = \"1\" THEN PRINT CHR$(4);\"-ART40.BAS\"\r"
+        src += "140 IF A$ = \"2\" THEN PRINT CHR$(4);\"-LOADER40.BAS\"\r"
+        src += "150 IF A$ = \"3\" THEN PRINT CHR$(4);\"-ART80.BAS\"\r"
+        src += "160 IF A$ = \"4\" THEN PRINT CHR$(4);\"-LOADER80.BAS\"\r"
+        src += "170 GOTO 10"
+        return src
+    }
 
     /// 40-col BASIC loader. POKEs the 30-byte copier to $0300, BLOADs
     /// ART40.BIN to $2000, then CALL 768 copies $2000-$23FF to $0400-$07FF.
