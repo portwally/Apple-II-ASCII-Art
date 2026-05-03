@@ -73,11 +73,12 @@ struct DiskExporter {
                               data: bin, type: 0x06, aux: 0x0400)
 
             let loaderSrc =
-                "10 HOME\r"                                  +
-                "20 PRINT CHR$(4);\"BLOAD ART.BIN\"\r"       +
-                "30 GET A$\r"                                +
-                "40 TEXT\r"                                  +
-                "50 HOME"
+                "10 PRINT CHR$(4);\"CLOSE\"\r"               +
+                "20 HOME\r"                                   +
+                "30 PRINT CHR$(4);\"BLOAD ART.BIN\"\r"        +
+                "40 GET A$\r"                                 +
+                "50 TEXT\r"                                   +
+                "60 HOME"
             let loaderTokens = ApplesoftTokenizer.tokenize(loaderSrc)
             try await addFile(to: url, name: "LOADER.BAS",
                               data: loaderTokens, type: 0xFC, aux: 0x0801)
@@ -92,14 +93,15 @@ struct DiskExporter {
                               type: 0x06, aux: 0x0300)
 
             let loaderSrc =
-                "10 PRINT CHR$(4);\"PR#3\"\r"                +
-                "20 PRINT CHR$(4);\"BLOAD ART80.BIN\"\r"     +
-                "30 PRINT CHR$(4);\"BLOAD ART80.LDR\"\r"     +
-                "40 CALL 768\r"                              +
-                "50 GET A$\r"                                +
-                "60 PRINT CHR$(4);\"PR#0\"\r"                +
-                "70 TEXT\r"                                  +
-                "80 HOME"
+                "10 PRINT CHR$(4);\"CLOSE\"\r"               +
+                "20 PRINT CHR$(4);\"PR#3\"\r"                +
+                "30 PRINT CHR$(4);\"BLOAD ART80.BIN\"\r"     +
+                "40 PRINT CHR$(4);\"BLOAD ART80.LDR\"\r"     +
+                "50 CALL 768\r"                              +
+                "60 GET A$\r"                                +
+                "70 PRINT CHR$(4);\"PR#0\"\r"                +
+                "80 TEXT\r"                                  +
+                "90 HOME"
             let loaderTokens = ApplesoftTokenizer.tokenize(loaderSrc)
             try await addFile(to: url, name: "LOADER80.BAS",
                               data: loaderTokens, type: 0xFC, aux: 0x0801)
