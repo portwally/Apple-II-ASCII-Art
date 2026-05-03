@@ -99,6 +99,11 @@ struct DiskExporter {
     /// STARTUP launcher. ProDOS BASIC.SYSTEM auto-runs any file named
     /// STARTUP at boot. Displays a 4-option menu and uses BASIC.SYSTEM's
     /// `-` smart-RUN to launch the chosen program.
+    ///
+    /// Layout: menu and SELECT prompt at the top, credit pinned to rows 23-24
+    /// at the bottom of the screen via VTAB. The bottom-row PRINT uses a
+    /// trailing `;` so its 39-char URL doesn't auto-wrap and scroll the
+    /// screen.
     private static func startupSource() -> String {
         var src = ""
         src += "5 NOTRACE\r"
@@ -111,17 +116,19 @@ struct DiskExporter {
         src += "70 PRINT \"  3) ART80    (80 COL, PRINT)\"\r"
         src += "80 PRINT \"  4) LOADER80 (80 COL, FAST)\"\r"
         src += "85 PRINT\r"
-        src += "90 PRINT \"  2026 WALTER TENGLER\"\r"
-        src += "95 PRINT \"GITHUB.COM/PORTWALLY/APPLE-II-ASCII-ART\"\r"
-        src += "96 PRINT\r"
-        src += "100 PRINT \"  SELECT 1-4: \";\r"
-        src += "110 GET A$\r"
-        src += "120 PRINT A$\r"
-        src += "130 IF A$ = \"1\" THEN PRINT CHR$(4);\"-ART40.BAS\"\r"
-        src += "140 IF A$ = \"2\" THEN PRINT CHR$(4);\"-LOADER40.BAS\"\r"
-        src += "150 IF A$ = \"3\" THEN PRINT CHR$(4);\"-ART80.BAS\"\r"
-        src += "160 IF A$ = \"4\" THEN PRINT CHR$(4);\"-LOADER80.BAS\"\r"
-        src += "170 GOTO 10"
+        src += "90 PRINT \"  SELECT 1-4: \";\r"
+        // Credit line, pinned to the bottom two rows of the 24-row screen.
+        src += "100 VTAB 23: HTAB 1: PRINT \"  2026 WALTER TENGLER\"\r"
+        src += "110 HTAB 1: PRINT \"GITHUB.COM/PORTWALLY/APPLE-II-ASCII-ART\";\r"
+        // Move cursor back next to the SELECT prompt for the GET.
+        src += "120 VTAB 9: HTAB 15\r"
+        src += "130 GET A$\r"
+        src += "140 PRINT A$\r"
+        src += "150 IF A$ = \"1\" THEN PRINT CHR$(4);\"-ART40.BAS\"\r"
+        src += "160 IF A$ = \"2\" THEN PRINT CHR$(4);\"-LOADER40.BAS\"\r"
+        src += "170 IF A$ = \"3\" THEN PRINT CHR$(4);\"-ART80.BAS\"\r"
+        src += "180 IF A$ = \"4\" THEN PRINT CHR$(4);\"-LOADER80.BAS\"\r"
+        src += "190 GOTO 10"
         return src
     }
 
