@@ -146,10 +146,22 @@ struct DiskExporter {
         return src.trimmingCharacters(in: .newlines)
     }
 
-    /// 80-col BASIC loader. POKEs the 52-byte loader to $0300 in 40-col mode
-    /// FIRST, then PR# 3 (Applesoft token) switches to 80-col, BLOADs
-    /// ART80.BIN to $4000, CALL 768 splits the 2048 bytes into AUX $0400 /
-    /// MAIN $0400.
+    /// 80-col BASIC loader.
+    ///
+    /// Order matters: BLOAD goes BEFORE PR# 3, not after. PR# 3 on this
+    /// BASIC.SYSTEM build appears to leave Ctrl-D detection in a state where
+    /// `PRINT CHR$(4);"BLOAD …"` no longer reaches BASIC.SYSTEM as a command —
+    /// it gets sent to the 80-col card's COUT instead, the BLOAD never runs,
+    /// and CALL 768 copies whatever residual garbage is sitting at $4000.
+    /// Doing the BLOAD while still in 40-col mode (cleanly hooked
+    /// BASIC.SYSTEM) sidesteps that.
+    ///
+    /// Sequence:
+    ///   1. POKE the 52-byte ML routine to $0300
+    ///   2. BLOAD ART80.BIN,A$4000 (in 40-col mode, BASIC.SYSTEM hooked)
+    ///   3. PR# 3 → 80-col mode (also re-enables TRACE, hence the second NOTRACE)
+    ///   4. HOME (clear the 80-col screen)
+    ///   5. CALL 768 → splits the 2048 bytes into AUX/MAIN $0400
     private static func loaderSource80() -> String {
         let copier    = AppleIIScreenMemory.loader80
         let dataStart = 200
@@ -158,16 +170,16 @@ struct DiskExporter {
         )
 
         var src = ""
-        src += "5 NOTRACE\r"   // Bitsy Bye on this template leaves TRACE on
+        src += "5 NOTRACE\r"
         src += "10 HOME\r"
         src += "20 FOR I = 0 TO \(copier.count - 1)\r"
         src += "30 READ B\r"
         src += "40 POKE 768 + I, B\r"
         src += "50 NEXT I\r"
-        src += "60 PR# 3\r"
-        src += "65 NOTRACE\r"        // PR# 3 re-enables TRACE on this BASIC.SYSTEM
-        src += "70 HOME\r"
-        src += "80 PRINT CHR$(4);\"BLOAD ART80.BIN,A$4000\"\r"
+        src += "60 PRINT CHR$(4);\"BLOAD ART80.BIN,A$4000\"\r"
+        src += "70 PR# 3\r"
+        src += "75 NOTRACE\r"         // PR# 3 re-enables TRACE on this BASIC.SYSTEM
+        src += "80 HOME\r"
         src += "90 CALL 768\r"
         src += "100 GET A$\r"
         src += "110 PR# 0\r"
