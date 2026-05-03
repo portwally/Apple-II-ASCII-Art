@@ -166,15 +166,33 @@ class ConverterViewModel: ObservableObject {
     }
 
     func exportProDOSDisk() {
-        guard let result else { return }
+        guard let image = sourceImage else { return }
         let panel = NSSavePanel()
         panel.allowedContentTypes = [UTType(filenameExtension: "po") ?? .data]
         panel.nameFieldStringValue = "\(sourceImageName.isEmpty ? "ascii_art" : sourceImageName).po"
+        let snap = settings
+        let ramp = effectiveRamp
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             Task {
                 do {
-                    try await DiskExporter.save(result, to: url)
+                    // Convert at BOTH resolutions in parallel — the disk
+                    // carries ART40.BAS/BIN/LOADER40.BAS plus ART80.BAS/BIN/
+                    // LOADER80.BAS. The user's preview-column setting only
+                    // affects the on-screen preview, not the disk contents.
+                    var s40 = snap; s40.columnMode = .forty
+                    var s80 = snap; s80.columnMode = .eighty
+                    let task40 = Task.detached(priority: .userInitiated) {
+                        ASCIIConverter.convert(image: image, settings: s40, customRamp: ramp)
+                    }
+                    let task80 = Task.detached(priority: .userInitiated) {
+                        ASCIIConverter.convert(image: image, settings: s80, customRamp: ramp)
+                    }
+                    let result40 = await task40.value
+                    let result80 = await task80.value
+                    try await DiskExporter.save(result40: result40,
+                                                 result80: result80,
+                                                 to: url)
                 } catch {
                     await MainActor.run { self.errorMessage = error.localizedDescription }
                 }

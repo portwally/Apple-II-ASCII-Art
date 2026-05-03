@@ -28,7 +28,7 @@ struct ExportSheet: View {
             Group {
                 switch format {
                 case .prodosDisk:
-                    Text("Bootable ProDOS disk with Bitsy Bye launcher. ART.BAS is the slow PRINT-based program (always works). LOADER.BAS uses an embedded ML copier + BLOAD ART.BIN for fast display — try it on real hardware/emulator. Mount in any Apple II emulator (Virtual II, OpenEmu, AppleWin) or write to a real disk.")
+                    Text("Bootable ProDOS disk with Bitsy Bye launcher. Carries BOTH renderings: ART40.BAS / ART40.BIN / LOADER40.BAS for 40-col mode, and ART80.BAS / ART80.BIN / LOADER80.BAS for 80-col mode. The ART.BAS files are the slow PRINT-based path; the LOADER.BAS files use an embedded ML copier + BLOAD for fast display. Mount in any Apple II emulator (Virtual II, OpenEmu, AppleWin) or write to a real disk.")
                 case .appleIIText:
                     Text("Plain text with CR (0x0D) line endings. Transfer to Apple II via ADT Pro or similar and TYPE the file.")
                 case .macText:
