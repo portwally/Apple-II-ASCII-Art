@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct HelpView: View {
+    @ObservedObject private var appSettings = AppSettings.shared
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -8,10 +10,11 @@ struct HelpView: View {
                 // MARK: - Header
 
                 Text("1977")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(headerFont)
+                    .chromeForeground(.primary)
                 Text("Apple II ASCII art studio")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .chromeFont(.body)
+                    .chromeForeground(.secondary)
 
                 Divider().padding(.vertical, 4)
 
@@ -98,35 +101,59 @@ struct HelpView: View {
                 // MARK: - Footer
 
                 Text("© 2026 Walter Tengler")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .chromeFont(.caption)
+                    .chromeForeground(.secondary)
             }
             .padding(32)
             .frame(maxWidth: 720)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(minWidth: 720, idealWidth: 760, minHeight: 600, idealHeight: 760)
+        .chromeBackground(.main)
     }
 
     // MARK: - Helpers
+
+    /// Banner-sized title font. For retro themes the bitmap fonts at 36 pt
+    /// look chunky, so we drop to a more readable 22 pt while still standing
+    /// out from body text. Under the System theme we keep the original
+    /// 36 pt rounded display font.
+    private var headerFont: Font {
+        if let name = appSettings.theme.fontName {
+            return .custom(name, size: 22)
+        }
+        return .system(size: 36, weight: .bold, design: .rounded)
+    }
 
     @ViewBuilder
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.title2.bold())
+                .font(sectionTitleFont)
+                .chromeForeground(.primary)
             content()
+                .chromeForeground(.primary)
         }
         .padding(.bottom, 4)
     }
 
+    /// Section heading. System theme keeps the larger `.title2.bold()`; retro
+    /// themes get a slightly larger custom-font headline.
+    private var sectionTitleFont: Font {
+        if let name = appSettings.theme.fontName {
+            return .custom(name, size: 16)
+        }
+        return .title2.bold()
+    }
+
     private func bullet(_ heading: LocalizedStringKey, _ body: LocalizedStringKey) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("•").foregroundStyle(.secondary)
+            Text("•").chromeForeground(.secondary)
             VStack(alignment: .leading, spacing: 2) {
                 Text(heading)
+                    .chromeForeground(.primary)
                 Text(body)
-                    .foregroundStyle(.secondary)
+                    .chromeForeground(.secondary)
             }
         }
         .padding(.leading, 4)

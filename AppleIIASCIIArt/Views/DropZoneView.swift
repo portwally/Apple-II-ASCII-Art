@@ -21,11 +21,12 @@ struct DropZoneView: View {
             VStack(spacing: 20) {
                 Image(systemName: "photo.badge.plus")
                     .font(.system(size: 52))
-                    .foregroundColor(.secondary)
+                    .chromeForeground(.secondary)
 
+                // Keep PrintChar21 here as a brand element regardless of theme.
                 Text("DROP IMAGE HERE")
                     .font(.custom("PrintChar21", size: 18))
-                    .foregroundColor(.secondary)
+                    .chromeForeground(.secondary)
 
                 Button("Open Image…") { onOpenFile() }
                     .buttonStyle(.borderedProminent)

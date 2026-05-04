@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PreviewView: View {
     @ObservedObject var vm: ConverterViewModel
+    @ObservedObject private var appSettings = AppSettings.shared
 
     // Apple II display: always 280:192 regardless of column mode
     private let screenAspect = 280.0 / 192.0
@@ -9,7 +10,9 @@ struct PreviewView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                Color(NSColor.windowBackgroundColor)
+                // Bezel/preview-area background. Themed for retro modes;
+                // falls back to the system window background under .system.
+                bezelBackground
 
                 if let result = vm.result {
                     appleScreen(result: result, available: geo.size)
@@ -21,6 +24,15 @@ struct PreviewView: View {
                     .padding(40)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var bezelBackground: some View {
+        if let themed = ChromeStyle(theme: appSettings.theme).background {
+            themed
+        } else {
+            Color(NSColor.windowBackgroundColor)
         }
     }
 

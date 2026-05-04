@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsPanel: View {
     @ObservedObject var vm: ConverterViewModel
+    @ObservedObject private var appSettings = AppSettings.shared
 
     var body: some View {
         ScrollView {
@@ -17,7 +18,14 @@ struct SettingsPanel: View {
             .padding(.trailing, 5)
         }
         .frame(minWidth: 230, maxWidth: 270)
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(sidebarBackgroundColor)
+    }
+
+    /// Themed sidebar fill — falls back to the system control background under
+    /// the System theme so the modern look is preserved exactly.
+    private var sidebarBackgroundColor: Color {
+        ChromeStyle(theme: appSettings.theme).sidebarBackground
+            ?? Color(NSColor.controlBackgroundColor)
     }
 
     // MARK: - Column mode
@@ -66,8 +74,8 @@ struct SettingsPanel: View {
             if vm.useCustomRamp {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Characters (dark → light):")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .chromeFont(.caption)
+                        .chromeForeground(.secondary)
                     TextField("e.g.  .:-=+*#%@", text: $vm.customRampText)
                         .font(.system(size: 13, design: .monospaced))
                         .textFieldStyle(.roundedBorder)
@@ -77,7 +85,7 @@ struct SettingsPanel: View {
                     .font(.system(size: 10, design: .monospaced))
                     .lineLimit(2)
                     .truncationMode(.tail)
-                    .foregroundColor(.secondary)
+                    .chromeForeground(.secondary)
             }
         }
     }
@@ -166,8 +174,8 @@ struct SettingsPanel: View {
     private func section<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.headline)
-                .foregroundColor(.primary)
+                .chromeFont(.headline)
+                .chromeForeground(.primary)
             content()
         }
     }
@@ -183,22 +191,22 @@ struct SettingsPanel: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Text(label)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .chromeFont(.caption)
+                    .chromeForeground(.secondary)
                 Spacer()
                 Text(String(format: "%+.0f%%", value.wrappedValue * 100))
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11, design: .monospaced))   // keep monospaced for column alignment
+                    .chromeForeground(.secondary)
                     .frame(width: 44, alignment: .trailing)
             }
             HStack(spacing: 4) {
                 Image(systemName: minIcon)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .chromeForeground(.secondary)
                 Slider(value: value, in: range)
                 Image(systemName: maxIcon)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .chromeForeground(.secondary)
             }
         }
     }

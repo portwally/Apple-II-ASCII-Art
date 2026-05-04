@@ -34,6 +34,11 @@ struct AppleIIASCIIArtApp: App {
             HelpView()
         }
         .windowResizability(.contentSize)
+
+        // Settings scene — auto-installs "1977 → Settings…" with Cmd+,.
+        Settings {
+            SettingsView()
+        }
     }
 }
 

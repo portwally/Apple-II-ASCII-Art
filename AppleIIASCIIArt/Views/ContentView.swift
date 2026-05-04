@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @StateObject private var vm = ConverterViewModel()
+    @ObservedObject private var appSettings = AppSettings.shared
 
     var body: some View {
         HSplitView {
@@ -18,18 +19,18 @@ struct ContentView: View {
                     }
                     if let result = vm.result {
                         Text("\(result.columns) × \(result.rows) characters")
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 11, design: .monospaced))   // keep monospaced for the numeric readout
+                            .chromeForeground(.secondary)
                     } else {
                         Text("No image loaded")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .chromeFont(.footnote)
+                            .chromeForeground(.secondary)
                     }
                     Spacer()
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color(NSColor.windowBackgroundColor))
+                .background(statusBarBackgroundColor)
                 .overlay(Divider(), alignment: .top)
             }
         }
@@ -54,6 +55,13 @@ struct ContentView: View {
             vm.loadDroppedProviders(providers)
             return true
         }
+    }
+
+    /// Themed status-bar fill — falls back to the system window background
+    /// under the System theme so the modern look is preserved.
+    private var statusBarBackgroundColor: Color {
+        ChromeStyle(theme: appSettings.theme).background
+            ?? Color(NSColor.windowBackgroundColor)
     }
 
     @ToolbarContentBuilder

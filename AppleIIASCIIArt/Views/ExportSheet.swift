@@ -16,7 +16,8 @@ struct ExportSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Export ASCII Art")
-                .font(.headline)
+                .chromeFont(.headline)
+                .chromeForeground(.primary)
 
             Picker("Format", selection: $format) {
                 ForEach(ExportFormat.allCases) { f in
@@ -37,8 +38,8 @@ struct ExportSheet: View {
                     Text("Applesoft BASIC program using PRINT statements. RUN it on your Apple IIe/IIc/IIgs. Use PR#3 for 80-col output (included automatically).")
                 }
             }
-            .font(.caption)
-            .foregroundColor(.secondary)
+            .chromeFont(.caption)
+            .chromeForeground(.secondary)
             .fixedSize(horizontal: false, vertical: true)
 
             Spacer()
@@ -62,5 +63,6 @@ struct ExportSheet: View {
         }
         .padding(24)
         .frame(width: 460, height: 320)
+        .chromeBackground(.main)
     }
 }
