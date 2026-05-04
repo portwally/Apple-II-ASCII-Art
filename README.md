@@ -6,9 +6,11 @@ A native macOS app that converts any image into Apple II ASCII art — in **40-c
 
 Output can be saved as a bootable ProDOS disk image, plain text ready to `TYPE` on a real Apple II, or a runnable Applesoft BASIC program.
 
-<p align="center">
-  <img src="docs/images/preview-green-custom.png" width="640" alt="Green phosphor preview, custom character ramp">
-</p>
+## Screenshots
+
+| Green phosphor · Apple II Classic ramp | Amber phosphor · Standard ASCII ramp |
+| :---: | :---: |
+| ![Green phosphor 80-col screenshot](docs/images/screenshot-green-80col.png) | ![Amber phosphor 80-col screenshot](docs/images/screenshot-amber-80col.png) |
 
 ## Screen colors
 
