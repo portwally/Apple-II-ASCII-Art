@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		F037ABCBC85147D9BBCFCB57 /* AppleIIASCIIArt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = AppleIIASCIIArt.app; path = 1977.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F037ABCBC85147D9BBCFCB57 /* 1977.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 1977.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		3D86AB01430343EB8CE9B2F9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				F037ABCBC85147D9BBCFCB57 /* AppleIIASCIIArt.app */,
+				F037ABCBC85147D9BBCFCB57 /* 1977.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -67,7 +67,7 @@
 			packageProductDependencies = (
 			);
 			productName = AppleIIASCIIArt;
-			productReference = F037ABCBC85147D9BBCFCB57 /* AppleIIASCIIArt.app */;
+			productReference = F037ABCBC85147D9BBCFCB57 /* 1977.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -252,7 +252,7 @@
 				CODE_SIGN_ENTITLEMENTS = AppleIIASCIIArt/AppleIIASCIIArt.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = ZFE2VJD462;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -284,7 +284,7 @@
 				CODE_SIGN_ENTITLEMENTS = AppleIIASCIIArt/AppleIIASCIIArt.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = ZFE2VJD462;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
