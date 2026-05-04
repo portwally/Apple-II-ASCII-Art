@@ -100,11 +100,10 @@ struct DiskExporter {
     /// STARTUP at boot. Displays a 4-option menu and uses BASIC.SYSTEM's
     /// `-` smart-RUN to launch the chosen program.
     ///
-    /// Layout: menu and SELECT prompt at the top, credit pinned to rows 23-24
-    /// at the bottom of the screen via VTAB. The bottom-row PRINT uses a
-    /// trailing `;` so its 39-char URL doesn't auto-wrap and scroll the
-    /// screen. All statements live on their own line — multi-statement lines
-    /// were tripping up Applesoft on this BASIC.SYSTEM build.
+    /// Layout: menu and SELECT prompt at the top, credit line pinned to row
+    /// 23 at the bottom of the screen via VTAB. All statements live on their
+    /// own line — multi-statement lines were tripping up Applesoft on this
+    /// BASIC.SYSTEM build.
     private static func startupSource() -> String {
         var src = ""
         src += "5 NOTRACE\r"
@@ -118,12 +117,10 @@ struct DiskExporter {
         src += "80 PRINT \"  4) LOADER80 (80 COL, FAST)\"\r"
         src += "85 PRINT\r"
         src += "90 PRINT \"  SELECT 1-4: \";\r"
-        // Credit pinned to the bottom two rows of the 24-row screen.
+        // Credit pinned to row 23 of the 24-row screen.
         src += "100 VTAB 23\r"
         src += "105 HTAB 1\r"
         src += "110 PRINT \"  2026 WALTER TENGLER\"\r"
-        src += "115 HTAB 1\r"
-        src += "120 PRINT \"GITHUB.COM/PORTWALLY/1977\";\r"
         // Move cursor back next to the SELECT prompt for the GET.
         src += "130 VTAB 9\r"
         src += "135 HTAB 15\r"
