@@ -8,9 +8,9 @@ Output can be saved as a bootable ProDOS disk image, plain text ready to `TYPE` 
 
 ## Screenshots
 
-| Green phosphor · Apple II Classic ramp | Amber phosphor · Standard ASCII ramp |
+| Apple II UI theme · Green phosphor · Apple II Classic ramp | Apple IIgs UI theme · Amber phosphor · Standard ASCII ramp |
 | :---: | :---: |
-| ![Green phosphor 80-col screenshot](docs/images/screenshot-green-80col.png) | ![Amber phosphor 80-col screenshot](docs/images/screenshot-amber-80col.png) |
+| ![Apple II UI theme, green phosphor, 80-col](docs/images/screenshot-green-80col.png) | ![Apple IIgs UI theme, amber phosphor, 80-col](docs/images/screenshot-amber-80col.png) |
 
 ## Screen colors
 
