@@ -42,7 +42,8 @@ class ConverterViewModel: ObservableObject {
 
     var effectiveRamp: CharacterRamp {
         if useCustomRamp {
-            let chars = Array(customRampText).filter { $0.asciiValue != nil }
+            // Allow any Unicode character (block elements, PETSCII symbols, etc.)
+            let chars = Array(customRampText).filter { !$0.isNewline }
             return CharacterRamp(id: "custom", displayName: "Custom", characters: chars.isEmpty ? [" "] : chars)
         }
         return settings.ramp
@@ -180,8 +181,8 @@ class ConverterViewModel: ObservableObject {
                     // carries ART40.BAS/BIN/LOADER40.BAS plus ART80.BAS/BIN/
                     // LOADER80.BAS. The user's preview-column setting only
                     // affects the on-screen preview, not the disk contents.
-                    var s40 = snap; s40.columnMode = .forty
-                    var s80 = snap; s80.columnMode = .eighty
+                    var s40 = snap; s40.platform = .appleII40
+                    var s80 = snap; s80.platform = .appleII80
                     let task40 = Task.detached(priority: .userInitiated) {
                         ASCIIConverter.convert(image: image, settings: s40, customRamp: ramp)
                     }

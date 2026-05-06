@@ -7,12 +7,12 @@ struct SettingsPanel: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                columnModeSection
+                platformSection
                 rowCountSection
                 rampSection
                 adjustmentsSection
                 flipSection
-                phosphorSection
+                screenColorSection
             }
             .padding(16)
             .padding(.trailing, 5)
@@ -21,34 +21,40 @@ struct SettingsPanel: View {
         .background(sidebarBackgroundColor)
     }
 
-    /// Themed sidebar fill — falls back to the system control background under
-    /// the System theme so the modern look is preserved exactly.
     private var sidebarBackgroundColor: Color {
         ChromeStyle(theme: appSettings.theme).sidebarBackground
             ?? Color(NSColor.controlBackgroundColor)
     }
 
-    // MARK: - Column mode
+    // MARK: - Platform
 
-    private var columnModeSection: some View {
-        section(title: "Column Mode") {
-            Picker("", selection: $vm.settings.columnMode) {
-                ForEach(ConversionSettings.ColumnMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
+    private var platformSection: some View {
+        section(title: "Computer") {
+            Picker("", selection: $vm.settings.platform) {
+                ForEach(ComputerPlatform.allCases) { platform in
+                    Text(platform.rawValue).tag(platform)
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
             .labelsHidden()
+            .onChange(of: vm.settings.platform) { _, newPlatform in
+                // Reset to the platform's native defaults on switch
+                vm.settings.rowCount       = newPlatform.rows
+                vm.settings.selectedRampID = newPlatform.defaultRampID
+                vm.settings.screenColor    = newPlatform.defaultScreenColor
+                vm.useCustomRamp           = false
+            }
         }
     }
 
     // MARK: - Row count
 
     private var rowCountSection: some View {
-        section(title: "Rows") {
+        let nativeRows = vm.settings.platform.rows
+        return section(title: "Rows") {
             Picker("", selection: $vm.settings.rowCount) {
-                Text("24 rows (1 screen)").tag(24)
-                Text("48 rows (2 screens)").tag(48)
+                Text("\(nativeRows) rows (1 screen)").tag(nativeRows)
+                Text("\(nativeRows * 2) rows (2 screens)").tag(nativeRows * 2)
             }
             .pickerStyle(.radioGroup)
             .labelsHidden()
@@ -147,17 +153,18 @@ struct SettingsPanel: View {
         }
     }
 
-    // MARK: - Phosphor color
+    // MARK: - Screen color
 
-    private var phosphorSection: some View {
-        section(title: "Screen Color") {
-            Picker("", selection: $vm.settings.phosphorColor) {
-                ForEach(ConversionSettings.PhosphorColor.allCases) { color in
+    private var screenColorSection: some View {
+        let available = vm.settings.platform.availableScreenColors
+        return section(title: "Screen Color") {
+            Picker("", selection: $vm.settings.screenColor) {
+                ForEach(available) { color in
                     Label {
                         Text(color.rawValue)
                     } icon: {
                         Circle()
-                            .fill(color.color)
+                            .fill(color.foregroundColor)
                             .frame(width: 12, height: 12)
                     }
                     .tag(color)
@@ -195,7 +202,7 @@ struct SettingsPanel: View {
                     .chromeForeground(.secondary)
                 Spacer()
                 Text(String(format: "%+.0f%%", value.wrappedValue * 100))
-                    .font(.system(size: 11, design: .monospaced))   // keep monospaced for column alignment
+                    .font(.system(size: 11, design: .monospaced))
                     .chromeForeground(.secondary)
                     .frame(width: 44, alignment: .trailing)
             }

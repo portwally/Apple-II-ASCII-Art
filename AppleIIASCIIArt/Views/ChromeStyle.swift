@@ -44,6 +44,8 @@ struct ChromeStyle {
         case .system:    return nil
         case .appleII:   return AppleIIThemeColors.background
         case .appleIIgs: return AppleIIgsThemeColors.background
+        case .commodore: return C64ThemeColors.background
+        case .msDOS:     return DOSThemeColors.background
         }
     }
 
@@ -52,6 +54,8 @@ struct ChromeStyle {
         case .system:    return nil
         case .appleII:   return AppleIIThemeColors.secondaryBg
         case .appleIIgs: return AppleIIgsThemeColors.secondaryBg
+        case .commodore: return C64ThemeColors.secondaryBg
+        case .msDOS:     return DOSThemeColors.secondaryBg
         }
     }
 
@@ -60,6 +64,8 @@ struct ChromeStyle {
         case .system:    return nil
         case .appleII:   return AppleIIThemeColors.text
         case .appleIIgs: return AppleIIgsThemeColors.text
+        case .commodore: return C64ThemeColors.text
+        case .msDOS:     return DOSThemeColors.text
         }
     }
 
@@ -68,6 +74,8 @@ struct ChromeStyle {
         case .system:    return nil
         case .appleII:   return AppleIIThemeColors.dimText
         case .appleIIgs: return AppleIIgsThemeColors.dimText
+        case .commodore: return C64ThemeColors.dimText
+        case .msDOS:     return DOSThemeColors.dimText
         }
     }
 
@@ -76,6 +84,8 @@ struct ChromeStyle {
         case .system:    return nil
         case .appleII:   return AppleIIThemeColors.border
         case .appleIIgs: return AppleIIgsThemeColors.border
+        case .commodore: return C64ThemeColors.border
+        case .msDOS:     return DOSThemeColors.border
         }
     }
 }
@@ -83,20 +93,14 @@ struct ChromeStyle {
 // MARK: - View modifiers
 
 extension View {
-    /// Apply the themed font for a given chrome role. Equivalent to
-    /// `.font(.headline)` etc. but routes through the user's theme picker.
     func chromeFont(_ role: ChromeRole) -> some View {
         modifier(ChromeFontModifier(role: role))
     }
 
-    /// Apply the themed text color (primary or dim/secondary). Falls back to
-    /// SwiftUI's `.primary`/`.secondary` under the system theme.
     func chromeForeground(_ kind: ChromeForegroundKind = .primary) -> some View {
         modifier(ChromeForegroundModifier(kind: kind))
     }
 
-    /// Apply the themed background. Under the system theme this is a no-op so
-    /// SwiftUI's default `.windowBackgroundColor` etc. still wins.
     func chromeBackground(_ kind: ChromeBackgroundKind = .main) -> some View {
         modifier(ChromeBackgroundModifier(kind: kind))
     }

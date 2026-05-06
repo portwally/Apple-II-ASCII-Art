@@ -2,22 +2,21 @@ import AppKit
 
 class ASCIIConverter {
 
-    // Apple II display dimensions (same for both 40-col and 80-col)
-    // 40-col: 40 chars × 7px = 280px wide, 24 rows × 8px = 192px tall
-    // 80-col: 80 chars × 3.5px = 280px wide, same height
-    private static let displayW = 280.0
-    private static let displayH_perRow = 8.0
-
-    static func convert(image: NSImage, settings: ConversionSettings, customRamp: CharacterRamp? = nil) -> ASCIIResult {
-        let cols = settings.columnMode.columns
+    static func convert(image: NSImage,
+                        settings: ConversionSettings,
+                        customRamp: CharacterRamp? = nil) -> ASCIIResult {
+        let platform = settings.platform
+        let cols = platform.columns
         let rows = settings.rowCount
         let ramp = customRamp ?? settings.ramp
-        let sourceName = ""
 
-        let displayH = displayH_perRow * Double(rows)
-        let cellW = settings.columnMode == .forty ? 7.0 : 3.5
+        // Physical screen size of the target platform — used to derive the
+        // correct aspect ratio and cell dimensions for sampling the source image.
+        let screenSize = platform.screenSize
+        let cellW = screenSize.width  / Double(cols)
+        let cellH = screenSize.height / Double(rows)
 
-        // Step 1: create an NSBitmapImageRep of size (cols × rows)
+        // Step 1: create an NSBitmapImageRep of size (cols × rows).
         // This represents the downsampled image at character resolution.
         guard let bitmapRep = NSBitmapImageRep(
             bitmapDataPlanes: nil,
@@ -42,27 +41,22 @@ class ASCIIConverter {
         NSGraphicsContext.current = ctx
         ctx.imageInterpolation = .high
 
-        // Compute the draw rect in bitmap pixel space.
-        // The bitmap (cols × rows) represents the Apple II display (displayW × displayH).
-        // Each bitmap pixel corresponds to one character cell of size (cellW × 8px).
-        //
-        // Map source image into the Apple II display with aspect-fill (center crop),
-        // then convert those display coords to bitmap coords by dividing by cell size.
+        // Map source image into the platform screen with aspect-fill (center crop),
+        // then convert display coords → bitmap pixel coords by dividing by cell size.
         let srcSize = image.size
-        let scaleX = displayW / srcSize.width
-        let scaleY = displayH / srcSize.height
-        let scale = max(scaleX, scaleY)
+        let scaleX = screenSize.width  / srcSize.width
+        let scaleY = screenSize.height / srcSize.height
+        let scale  = max(scaleX, scaleY)
 
-        let scaledW = srcSize.width * scale
-        let scaledH = srcSize.height * scale
-        let dispOffX = (displayW - scaledW) / 2.0
-        let dispOffY = (displayH - scaledH) / 2.0
+        let scaledW  = srcSize.width  * scale
+        let scaledH  = srcSize.height * scale
+        let dispOffX = (screenSize.width  - scaledW) / 2.0
+        let dispOffY = (screenSize.height - scaledH) / 2.0
 
-        // Convert display coords → bitmap pixel coords
         let destX = dispOffX / cellW
-        let destY = dispOffY / displayH_perRow
-        let destW = scaledW / cellW
-        let destH = scaledH / displayH_perRow
+        let destY = dispOffY / cellH
+        let destW = scaledW  / cellW
+        let destH = scaledH  / cellH
 
         image.draw(
             in: NSRect(x: destX, y: destY, width: destW, height: destH),
@@ -72,7 +66,7 @@ class ASCIIConverter {
         )
         NSGraphicsContext.restoreGraphicsState()
 
-        // Step 2: brightness/contrast factors (from Retro-Graphics-Converter)
+        // Step 2: brightness/contrast factors
         let brightnessOffset = settings.brightness * 255.0
         let contrastFactor = settings.contrast >= 0
             ? (1.0 + settings.contrast * 3.0)
@@ -84,16 +78,14 @@ class ASCIIConverter {
         for row in 0..<rows {
             for col in 0..<cols {
                 guard let nsColor = bitmapRep.colorAt(x: col, y: row) else { continue }
-                var r = Double(nsColor.redComponent) * 255.0
+                var r = Double(nsColor.redComponent)   * 255.0
                 var g = Double(nsColor.greenComponent) * 255.0
-                var b = Double(nsColor.blueComponent) * 255.0
+                var b = Double(nsColor.blueComponent)  * 255.0
 
-                // Apply contrast then brightness
                 r = max(0, min(255, (r - 128) * contrastFactor + 128 + brightnessOffset))
                 g = max(0, min(255, (g - 128) * contrastFactor + 128 + brightnessOffset))
                 b = max(0, min(255, (b - 128) * contrastFactor + 128 + brightnessOffset))
 
-                // BT.709 perceptual luminance
                 let lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0
                 let brightness = settings.invert ? (1.0 - lum) : lum
 
@@ -101,14 +93,10 @@ class ASCIIConverter {
             }
         }
 
-        if settings.flipHorizontal {
-            grid = grid.map { Array($0.reversed()) }
-        }
-        if settings.flipVertical {
-            grid.reverse()
-        }
+        if settings.flipHorizontal { grid = grid.map { Array($0.reversed()) } }
+        if settings.flipVertical   { grid.reverse() }
 
-        return ASCIIResult(columns: cols, rows: rows, grid: grid, sourceName: sourceName)
+        return ASCIIResult(columns: cols, rows: rows, grid: grid, sourceName: "")
     }
 
     private static func empty(cols: Int, rows: Int) -> ASCIIResult {
