@@ -11,6 +11,7 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
     case appleII80  = "Apple II (80-col)"
     case pet        = "Commodore PET"
     case c64        = "Commodore 64"
+    case c128       = "Commodore 128 (80-col)"
     case vic20      = "VIC-20"
     case atari8bit  = "Atari 8-bit"
     case zxSpectrum = "ZX Spectrum"
@@ -24,19 +25,19 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
 
     var columns: Int {
         switch self {
-        case .appleII40, .pet, .c64, .atari8bit:  return 40
-        case .appleII80, .amiga, .atariST, .msDOS: return 80
-        case .vic20:                               return 22
-        case .zxSpectrum:                          return 32
+        case .appleII40, .pet, .c64, .atari8bit:           return 40
+        case .appleII80, .c128, .amiga, .atariST, .msDOS:  return 80
+        case .vic20:                                        return 22
+        case .zxSpectrum:                                   return 32
         }
     }
 
     /// Native row count for this platform's text screen.
     var rows: Int {
         switch self {
-        case .appleII40, .appleII80, .atari8bit, .zxSpectrum:  return 24
-        case .pet, .c64, .amiga, .atariST, .msDOS:             return 25
-        case .vic20:                                            return 23
+        case .appleII40, .appleII80, .atari8bit, .zxSpectrum:    return 24
+        case .pet, .c64, .c128, .amiga, .atariST, .msDOS:        return 25
+        case .vic20:                                              return 23
         }
     }
 
@@ -60,6 +61,7 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
         case .appleII40, .appleII80:  return CGSize(width: 280,  height: 192)
         case .pet:                    return CGSize(width: 320,  height: 200)
         case .c64:                    return CGSize(width: 320,  height: 200)
+        case .c128:                   return CGSize(width: 320,  height: 200)
         case .vic20:                  return CGSize(width: 352,  height: 184)
         case .atari8bit:              return CGSize(width: 320,  height: 192)
         case .zxSpectrum:             return CGSize(width: 293,  height: 192)
@@ -82,6 +84,7 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
         case .appleII80:   return "PRNumber3"
         case .pet:         return "Pet Me 64"
         case .c64:         return "Pet Me 64"
+        case .c128:        return "Pet Me 128 2Y"      // half-width glyphs match C128 80-col 2:1 cell aspect
         case .vic20:       return "Pet Me 2X"          // double-width glyphs match VIC-20's wide pixels
         case .atari8bit:   return "EightBit Atari"
         case .zxSpectrum:  return "ZX Spectrum"
@@ -102,6 +105,8 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
             return .phosphor
         case .c64:
             return .palette(name: "C64",         colors: Palettes.c64)
+        case .c128:
+            return .palette(name: "C128",        colors: Palettes.c64)   // C128 uses the same 16-color palette
         case .vic20:
             return .palette(name: "VIC-20",      colors: Palettes.vic20)
         case .atari8bit:
@@ -131,6 +136,7 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
     var defaultPaletteSelection: PaletteSelection {
         switch self {
         case .c64:        return PaletteSelection(fgIndex: 14, bgIndex: 6)   // Light Blue on Blue
+        case .c128:       return PaletteSelection(fgIndex: 14, bgIndex: 6)   // Light Blue on Blue
         case .vic20:      return PaletteSelection(fgIndex: 14, bgIndex: 6)   // Light Blue on Blue
         case .atari8bit:  return PaletteSelection(fgIndex: 3,  bgIndex: 1)   // Light Blue on Dark Blue
         case .zxSpectrum: return PaletteSelection(fgIndex: 0,  bgIndex: 7)   // Black ink on White paper (BASIC default)
@@ -148,7 +154,7 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
     var defaultRampID: String {
         switch self {
         case .appleII40, .appleII80:        return CharacterRamp.appleIIClassic.id
-        case .pet, .c64, .vic20:            return CharacterRamp.petsciiBlocks.id
+        case .pet, .c64, .c128, .vic20:     return CharacterRamp.petsciiBlocks.id
         case .msDOS:                        return CharacterRamp.cp437Blocks.id
         case .atari8bit, .zxSpectrum,
              .amiga, .atariST:              return CharacterRamp.standard.id

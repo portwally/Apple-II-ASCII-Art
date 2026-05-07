@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsPanel: View {
     @ObservedObject var vm: ConverterViewModel
     @ObservedObject private var appSettings = AppSettings.shared
+    @State private var showCharacterPicker = false
 
     var body: some View {
         ScrollView {
@@ -42,6 +43,9 @@ struct SettingsPanel: View {
                 // applyPlatform also resets rowCount and ramp.
                 vm.settings.applyPlatform(newPlatform)
                 vm.useCustomRamp = false
+                // Drop any custom-ramp characters the new platform's font
+                // can't render (they'd otherwise show as '?' boxes).
+                vm.pruneCustomRampToFont(newPlatform.fontName)
             }
         }
     }
@@ -81,13 +85,29 @@ struct SettingsPanel: View {
                     Text("Characters (dark → light):")
                         .chromeFont(.caption)
                         .chromeForeground(.secondary)
-                    TextField("e.g.  .:-=+*#%@", text: $vm.customRampText)
-                        .font(.system(size: 13, design: .monospaced))
-                        .textFieldStyle(.roundedBorder)
+                    HStack(spacing: 4) {
+                        TextField("e.g.  .:-=+*#%@", text: $vm.customRampText)
+                            .font(.custom(vm.settings.platform.fontName, size: 13))
+                            .textFieldStyle(.roundedBorder)
+                        Button {
+                            showCharacterPicker.toggle()
+                        } label: {
+                            Image(systemName: "rectangle.grid.3x2")
+                                .imageScale(.medium)
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Browse font characters")
+                        .popover(isPresented: $showCharacterPicker, arrowEdge: .trailing) {
+                            CharacterPickerPopover(
+                                fontName: vm.settings.platform.fontName,
+                                rampText: $vm.customRampText
+                            )
+                        }
+                    }
                 }
             } else {
                 Text(vm.settings.ramp.characters.map(String.init).joined())
-                    .font(.system(size: 10, design: .monospaced))
+                    .font(.custom(vm.settings.platform.fontName, size: 11))
                     .lineLimit(2)
                     .truncationMode(.tail)
                     .chromeForeground(.secondary)

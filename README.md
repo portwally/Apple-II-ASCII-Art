@@ -2,36 +2,61 @@
 
 > The year the Apple II shipped.
 
-A native macOS app that converts any image into Apple II ASCII art — in **40-column** or **80-column** text mode — and previews it on screen the way it would look on a real Apple II, using authentic period fonts and a phosphor-glow display.
+A native macOS app that converts any image into authentic text-mode ASCII art for ten classic platforms — from the Apple II to the Amiga — with live previews using each system's real fonts, hardware palettes, and screen aspect.
 
-Output can be saved as a bootable ProDOS disk image, plain text ready to `TYPE` on a real Apple II, or a runnable Applesoft BASIC program.
+Output can be saved as a PNG, a bootable ProDOS disk image, plain text ready to `TYPE` on a real Apple II, or a runnable Applesoft BASIC program.
+
+## Supported platforms
+
+| Platform | Grid | Font |
+| --- | --- | --- |
+| Apple II (40-col) | 40 × 24 | Print Char 21 |
+| Apple II (80-col) | 80 × 24 | PR Number 3 |
+| Commodore PET | 40 × 25 | Pet Me 64 |
+| Commodore 64 | 40 × 25 | Pet Me 64 |
+| Commodore 128 (80-col) | 80 × 25 | Pet Me 128 2Y |
+| VIC-20 | 22 × 23 | Pet Me 2X |
+| Atari 8-bit | 40 × 24 | EightBit Atari |
+| Atari ST | 80 × 25 | Atari ST 8x16 |
+| ZX Spectrum | 32 × 24 | ZX Spectrum |
+| Amiga | 80 × 25 | Amiga Topaz |
+| MS-DOS (CGA) | 80 × 25 | Perfect DOS VGA 437 |
+
+Each platform draws on its native screen aspect ratio (e.g. 280 × 192 for Apple II, 320 × 200 for Commodore, 640 × 400 for Amiga / Atari ST / MS-DOS) and its own colour model — phosphor for monochrome systems, hardware palette for the rest.
 
 ## Screenshots
 
-| Apple II UI theme · Green phosphor · Apple II Classic ramp | Apple IIgs UI theme · Amber phosphor · Standard ASCII ramp |
+| Apple II 80-col · character picker popover | Atari ST · live crop tool |
 | :---: | :---: |
-| ![Apple II UI theme, green phosphor, 80-col](docs/images/screenshot-green-80col.png) | ![Apple IIgs UI theme, amber phosphor, 80-col](docs/images/screenshot-amber-80col.png) |
+| ![](docs/images/screenshot-apple2-charpicker.png) | ![](docs/images/screenshot-crop-tool.png) |
 
-## Screen colors
+| Commodore 128 (80-col) · custom ramp | Amiga · Workbench palette · Dense ramp |
+| :---: | :---: |
+| ![](docs/images/screenshot-c128-shamrock.png) | ![](docs/images/screenshot-amiga-dense.png) |
 
-Three classic phosphor looks — green, amber, and white.
+| MS-DOS · CGA palette · Apple II Blocks ramp | Apple II 80-col · 48 rows (2 screens) |
+| :---: | :---: |
+| ![](docs/images/screenshot-msdos-cga.png) | ![](docs/images/screenshot-apple2-eagle.png) |
 
-| Green (custom ramp) | Amber (Apple II Classic ramp) | White (Standard ASCII ramp, inverted) |
-| :---: | :---: | :---: |
-| ![](docs/images/preview-green-custom.png) | ![](docs/images/preview-amber-classic.png) | ![](docs/images/preview-white-standard.png) |
+| Atari ST · inverted Simple ramp | Commodore 128 · C64 retro UI theme |
+| :---: | :---: |
+| ![](docs/images/screenshot-atarist-worldmap.png) | ![](docs/images/screenshot-c128-themed.png) |
 
 ## Features
 
-- **40-col and 80-col modes** — uses [PrintChar21](https://www.kreativekorp.com/software/fonts/apple2/) for 40-col and [PRNumber3](https://www.kreativekorp.com/software/fonts/apple2/) for 80-col, both bundled inside the app.
-- **24 or 48 rows** — one screen, or two screens of scrollable output.
-- **Four character ramps + custom** — Apple II Classic, Standard ASCII, Simple, Dense, plus a free-form custom ramp.
-- **Brightness, contrast, and invert** with live preview.
+- **Ten retro platforms** with native fonts, palettes, and aspect ratios.
+- **One screen or two** — native row count, or 2× for double-screen output.
+- **Character ramps** — Apple II Classic, Standard ASCII, Simple, Dense, PETSCII Blocks, PETSCII Symbols, CP437 Blocks, plus a custom ramp.
+- **Character picker popover** — every glyph in the platform's font in a scrollable grid; click to build your custom ramp.
+- **Live crop tool** — draggable, resizable selection box with locked aspect ratio, rule-of-thirds grid, pinch-zoom, two-finger pan, and mouse-wheel zoom.
+- **Per-platform colour memory** — phosphor systems get a green / amber / white radio, palette systems get full FG/BG swatch pickers (16 colours for C64/C128/VIC-20/CGA/Atari, 8 for Spectrum/Amiga). Your last selection per platform is remembered.
+- **Brightness, contrast, invert** with live preview (debounced 150 ms).
 - **Horizontal and vertical flip.**
-- **Phosphor preview** — green (#33FF00), amber (#FFB000), or white, with subtle screen glow.
-- **Aspect-ratio-correct sampling** — input images are mapped onto the Apple II's 280 × 192 display space using BT.709 perceptual luminance, so the output looks right when displayed on real hardware.
+- **Aspect-ratio-correct sampling** — input images are mapped onto each platform's display canvas using BT.709 perceptual luminance.
 - **Drag-and-drop import** for PNG, JPEG, TIFF, GIF, BMP, HEIC.
 - **Export formats:**
-  - **Apple II Disk Image** (`.po`) — bootable ProDOS disk with a STARTUP launcher and both 40-col and 80-col renderings. Mount in any Apple II emulator (Virtual II, OpenEmu, AppleWin) or write to a real floppy.
+  - **PNG** at 1×, 2×, or 4× the platform's native resolution.
+  - **Apple II Disk Image** (`.po`) — bootable ProDOS disk with a STARTUP launcher and both 40-col and 80-col renderings.
   - **Apple II Text** (`.txt`, 7-bit ASCII, CR / `0x0D` line endings) — drop onto a ProDOS disk and `TYPE` it.
   - **Mac Text** (`.txt`, LF endings) — for editing on the Mac.
   - **Applesoft BASIC** (`.bas`, `PRINT` program) — auto-inserts `PR# 3` for 80-column output.
@@ -42,7 +67,7 @@ Three classic phosphor looks — green, amber, and white.
   <img src="docs/images/export-sheet.png" width="640" alt="Export sheet showing Apple II Disk Image, text and BASIC options">
 </p>
 
-## Disk creation
+## Apple II disk creation
 
 Picking **Apple II Disk Image** writes a bootable ProDOS volume containing six programs and a STARTUP launcher. Boot it on real hardware or any Apple II emulator and you'll land on this menu:
 
@@ -80,18 +105,26 @@ xcodebuild -project AppleIIASCIIArt.xcodeproj -scheme AppleIIASCIIArt -configura
 
 ## How it works
 
-1. The source image is aspect-fill scaled into the Apple II's 280 × 192 display canvas, then downsampled to a `cols × rows` bitmap (one pixel per character cell).
-2. Per-cell brightness is computed via BT.709 luminance (`0.2126 R + 0.7152 G + 0.0722 B`) after applying brightness/contrast adjustments.
-3. The 0.0 → 1.0 brightness value indexes into the chosen character ramp (dark → light).
-4. The grid is rendered live with the appropriate Apple II font on a black phosphor screen, with optional flips and inversion.
+1. The source image is cropped to the selection rect (or the largest centred AR-matched rect if you haven't moved it), then aspect-fill scaled into the chosen platform's display canvas.
+2. The canvas is downsampled to a `cols × rows` bitmap — one pixel per character cell.
+3. Per-cell brightness is computed via BT.709 luminance (`0.2126 R + 0.7152 G + 0.0722 B`) after applying brightness/contrast adjustments.
+4. The 0.0 → 1.0 brightness value indexes into the chosen character ramp (dark → light).
+5. The grid is rendered live in the platform's font, at the platform's foreground / background colour, with optional flips and inversion.
 
 ## Fonts
 
-Bundled fonts are from [Kreative Korporation](https://www.kreativekorp.com/software/fonts/apple2/):
+Bundled retro fonts:
 
-- **Print Char 21** — the standard Apple II 40-column character set
-- **PR Number 3** — the 80-column card character set (`PR# 3`)
+- **Print Char 21**, **PR Number 3** — Apple II / IIgs by [Kreative Korporation](https://www.kreativekorp.com/software/fonts/apple2/)
+- **Pet Me 64**, **Pet Me 2X**, **Pet Me 128 2Y** — Commodore PET / 64 / 128 / VIC-20 by [Style](https://style64.org/petme)
+- **Perfect DOS VGA 437** — by [Zeh Fernando](https://int10h.org)
+- **EightBit Atari** — Atari 8-bit
+- **ZX Spectrum** — by [Damien Guard](https://damieng.com/typography/zx-origins/)
+- **Amiga Topaz** — Commodore Amiga
+- **Atari ST 8x16 System Font** — Atari ST
+
+Each font retains its original license; see in-app About / Credits for details.
 
 ## License
 
-Code: see repository. Fonts retain their original Kreative Korporation licenses.
+Code: see repository. Fonts retain their original licenses.

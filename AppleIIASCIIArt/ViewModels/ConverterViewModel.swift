@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import UniformTypeIdentifiers
 import CoreGraphics
+import CoreText
 
 @MainActor
 class ConverterViewModel: ObservableObject {
@@ -14,6 +15,8 @@ class ConverterViewModel: ObservableObject {
     @Published var result: ASCIIResult? = nil
     @Published var isConverting: Bool = false
     @Published var showExportSheet: Bool = false
+    @Published var showCropTool: Bool = false
+    @Published var cropRectNorm: CGRect = CGRect(x: 0, y: 0, width: 1, height: 1)
     @Published var errorMessage: String? = nil
 
     private var conversionTask: Task<Void, Never>?
@@ -36,6 +39,12 @@ class ConverterViewModel: ObservableObject {
             .store(in: &cancellables)
 
         $useCustomRamp
+            .dropFirst()
+            .sink { [weak self] _ in self?.convert() }
+            .store(in: &cancellables)
+
+        $cropRectNorm
+            .debounce(for: .milliseconds(150), scheduler: RunLoop.main)
             .dropFirst()
             .sink { [weak self] _ in self?.convert() }
             .store(in: &cancellables)
@@ -72,7 +81,37 @@ class ConverterViewModel: ObservableObject {
         }
         sourceImage = image
         sourceImageName = url.deletingPathExtension().lastPathComponent
+        resetCrop()
         convert()
+    }
+
+    /// Strip from `customRampText` any character that the given font doesn't
+    /// have a glyph for — those characters would otherwise render as '?'
+    /// boxes in the new platform.
+    func pruneCustomRampToFont(_ fontName: String) {
+        let ctFont  = CTFontCreateWithName(fontName as CFString, 16, nil)
+        let charset = CTFontCopyCharacterSet(ctFont) as CharacterSet
+        let kept    = customRampText.unicodeScalars.filter { charset.contains($0) }
+        let result  = String(String.UnicodeScalarView(kept))
+        if result != customRampText { customRampText = result }
+    }
+
+    /// Initialise the crop rect to the largest centre-cropped box that
+    /// matches the current platform's aspect ratio.
+    func resetCrop() {
+        guard let img = sourceImage else {
+            cropRectNorm = CGRect(x: 0, y: 0, width: 1, height: 1)
+            return
+        }
+        let imageAR = img.size.width / img.size.height
+        let cropAR  = settings.platform.aspectRatio
+        if imageAR > cropAR {
+            let w = cropAR / imageAR
+            cropRectNorm = CGRect(x: (1 - w) / 2, y: 0, width: w, height: 1)
+        } else {
+            let h = imageAR / cropAR
+            cropRectNorm = CGRect(x: 0, y: (1 - h) / 2, width: 1, height: h)
+        }
     }
 
     func loadDroppedProviders(_ providers: [NSItemProvider]) {
@@ -100,6 +139,7 @@ class ConverterViewModel: ObservableObject {
                 Task { @MainActor in
                     self?.sourceImage = image
                     self?.sourceImageName = "dropped"
+                    self?.resetCrop()
                     self?.convert()
                 }
             }
@@ -112,17 +152,41 @@ class ConverterViewModel: ObservableObject {
         guard let image = sourceImage else { return }
         conversionTask?.cancel()
         isConverting = true
-        let snap = settings
-        let ramp = effectiveRamp
+        let snap    = settings
+        let ramp    = effectiveRamp
+        let cropped = croppedImage(image, norm: cropRectNorm)
 
         conversionTask = Task {
             let r = await Task.detached(priority: .userInitiated) {
-                ASCIIConverter.convert(image: image, settings: snap, customRamp: ramp)
+                ASCIIConverter.convert(image: cropped, settings: snap, customRamp: ramp)
             }.value
             guard !Task.isCancelled else { return }
             self.result = r
             self.isConverting = false
         }
+    }
+
+    /// Returns a new NSImage cropped to the normalised rect (top-left origin).
+    /// If the rect covers the whole image the original is returned unchanged.
+    private func croppedImage(_ image: NSImage, norm: CGRect) -> NSImage {
+        let tol: CGFloat = 0.001
+        guard norm.minX > tol || norm.minY > tol ||
+              norm.maxX < 1 - tol || norm.maxY < 1 - tol else { return image }
+
+        let src  = image.size
+        // NSImage draw coords have Y=0 at the bottom, so flip the normalised Y.
+        let from = CGRect(
+            x:      norm.minX        * src.width,
+            y:     (1 - norm.maxY)   * src.height,
+            width:  norm.width       * src.width,
+            height: norm.height      * src.height
+        )
+        let out = NSImage(size: from.size)
+        out.lockFocus()
+        image.draw(in: NSRect(origin: .zero, size: from.size),
+                   from: from, operation: .copy, fraction: 1.0)
+        out.unlockFocus()
+        return out
     }
 
     // MARK: - Export
