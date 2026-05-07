@@ -181,6 +181,51 @@ struct SettingsPanel: View {
             phosphorSection
         case .palette(let name, let colors):
             paletteSection(name: name, colors: colors)
+        case .phosphorOrPalette(let name, let colors):
+            phosphorOrPaletteSection(name: name, colors: colors)
+        }
+    }
+
+    /// Apple II screen-color section: a segmented "mode" toggle on top
+    /// (Phosphor / IIgs colors), with the appropriate sub-UI underneath.
+    private func phosphorOrPaletteSection(name: String,
+                                          colors: [PaletteColor]) -> some View {
+        section(title: "Screen Color") {
+            VStack(alignment: .leading, spacing: 10) {
+                Picker("", selection: paletteModeBinding) {
+                    Text("Phosphor").tag(false)
+                    Text(name).tag(true)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+
+                if vm.settings.currentUsesPalette {
+                    Text("Foreground")
+                        .chromeFont(.caption)
+                        .chromeForeground(.secondary)
+                    ColorSwatchGrid(colors: colors, selection: fgBinding)
+
+                    Text("Background")
+                        .chromeFont(.caption)
+                        .chromeForeground(.secondary)
+                    ColorSwatchGrid(colors: colors, selection: bgBinding)
+                } else {
+                    Picker("", selection: phosphorBinding) {
+                        ForEach(ConversionSettings.ScreenColor.allCases) { color in
+                            Label {
+                                Text(color.rawValue)
+                            } icon: {
+                                Circle()
+                                    .fill(color.foregroundColor)
+                                    .frame(width: 12, height: 12)
+                            }
+                            .tag(color)
+                        }
+                    }
+                    .pickerStyle(.radioGroup)
+                    .labelsHidden()
+                }
+            }
         }
     }
 
@@ -229,6 +274,13 @@ struct SettingsPanel: View {
         Binding(
             get: { vm.settings.currentPhosphor },
             set: { vm.settings.currentPhosphor = $0 }
+        )
+    }
+
+    private var paletteModeBinding: Binding<Bool> {
+        Binding(
+            get: { vm.settings.currentUsesPalette },
+            set: { vm.settings.currentUsesPalette = $0 }
         )
     }
 

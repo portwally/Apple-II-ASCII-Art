@@ -2,7 +2,7 @@
 
 > The year the Apple II shipped.
 
-A native macOS app that converts any image into authentic text-mode ASCII art for ten classic platforms — from the Apple II to the Amiga — with live previews using each system's real fonts, hardware palettes, and screen aspect.
+A native macOS app that converts any image into authentic text-mode ASCII art for fifteen classic platforms — from the Apple II to the Amiga — with live previews using each system's real fonts, hardware palettes, and screen aspect.
 
 Output can be saved as a PNG, a bootable ProDOS disk image, plain text ready to `TYPE` on a real Apple II, or a runnable Applesoft BASIC program.
 
@@ -21,6 +21,10 @@ Output can be saved as a PNG, a bootable ProDOS disk image, plain text ready to 
 | ZX Spectrum | 32 × 24 | ZX Spectrum |
 | Amiga | 80 × 25 | Amiga Topaz |
 | MS-DOS (CGA) | 80 × 25 | Perfect DOS VGA 437 |
+| Amstrad CPC | 40 × 25 | Amstrad CPC464 |
+| TRS-80 CoCo | 32 × 16 | Hot CoCo |
+| MSX (40-col) | 40 × 24 | MSX Screen 0 |
+| MSX (32-col) | 32 × 24 | MSX Screen 1 |
 
 Each platform draws on its native screen aspect ratio (e.g. 280 × 192 for Apple II, 320 × 200 for Commodore, 640 × 400 for Amiga / Atari ST / MS-DOS) and its own colour model — phosphor for monochrome systems, hardware palette for the rest.
 
@@ -44,7 +48,7 @@ Each platform draws on its native screen aspect ratio (e.g. 280 × 192 for Apple
 
 ## Features
 
-- **Ten retro platforms** with native fonts, palettes, and aspect ratios.
+- **Fifteen retro platforms** with native fonts, palettes, and aspect ratios.
 - **One screen or two** — native row count, or 2× for double-screen output.
 - **Character ramps** — Apple II Classic, Standard ASCII, Simple, Dense, PETSCII Blocks, PETSCII Symbols, CP437 Blocks, plus a custom ramp.
 - **Character picker popover** — every glyph in the platform's font in a scrollable grid; click to build your custom ramp.
@@ -122,6 +126,9 @@ Bundled retro fonts:
 - **ZX Spectrum** — by [Damien Guard](https://damieng.com/typography/zx-origins/)
 - **Amiga Topaz** — Commodore Amiga
 - **Atari ST 8x16 System Font** — Atari ST
+- **Amstrad CPC464** — Amstrad CPC
+- **Hot CoCo** — TRS-80 Color Computer
+- **MSX Screen 0**, **MSX Screen 1** — MSX 40-col / 32-col
 
 Each font retains its original license; see in-app About / Credits for details.
 

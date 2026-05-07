@@ -38,8 +38,11 @@ struct ConversionSettings: Equatable {
     /// Per-platform memory of the user's last color choice during this session.
     /// Looked up by `applyPlatform(_:)` and the resolved-color computed properties.
     /// Lazily populated — missing keys fall through to the platform's default.
-    private var phosphorByPlatform: [ComputerPlatform: ScreenColor]    = [:]
+    private var phosphorByPlatform: [ComputerPlatform: ScreenColor]      = [:]
     private var paletteByPlatform:  [ComputerPlatform: PaletteSelection] = [:]
+    /// For platforms in `.phosphorOrPalette` mode: which sub-mode is active.
+    /// `false` (default) = phosphor radio; `true` = palette swatches.
+    private var paletteModeByPlatform: [ComputerPlatform: Bool]          = [:]
 
     // MARK: - Derived
 
@@ -54,8 +57,11 @@ struct ConversionSettings: Equatable {
         case .phosphor:
             return currentPhosphor.foregroundColor
         case .palette(_, let colors):
-            let sel = currentPaletteSelection
-            return colors[safe: sel.fgIndex]?.color ?? .white
+            return colors[safe: paletteFGIndex]?.color ?? .white
+        case .phosphorOrPalette(_, let colors):
+            return currentUsesPalette
+                ? (colors[safe: paletteFGIndex]?.color ?? .white)
+                : currentPhosphor.foregroundColor
         }
     }
 
@@ -65,8 +71,11 @@ struct ConversionSettings: Equatable {
         case .phosphor:
             return currentPhosphor.backgroundColor
         case .palette(_, let colors):
-            let sel = currentPaletteSelection
-            return colors[safe: sel.bgIndex]?.color ?? .black
+            return colors[safe: paletteBGIndex]?.color ?? .black
+        case .phosphorOrPalette(_, let colors):
+            return currentUsesPalette
+                ? (colors[safe: paletteBGIndex]?.color ?? .black)
+                : currentPhosphor.backgroundColor
         }
     }
 
@@ -83,6 +92,13 @@ struct ConversionSettings: Equatable {
     var currentPaletteSelection: PaletteSelection {
         get { paletteByPlatform[platform] ?? platform.defaultPaletteSelection }
         set { paletteByPlatform[platform] = newValue }
+    }
+
+    /// For `.phosphorOrPalette` platforms: which sub-mode is active.
+    /// false = phosphor presets, true = IIgs palette swatches.
+    var currentUsesPalette: Bool {
+        get { paletteModeByPlatform[platform] ?? false }
+        set { paletteModeByPlatform[platform] = newValue }
     }
 
     /// Convenience bindings for the SettingsPanel — read/write the index but

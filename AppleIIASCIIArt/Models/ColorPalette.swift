@@ -22,13 +22,19 @@ struct PaletteColor: Identifiable, Equatable, Hashable {
 /// How a platform models its display colors.
 ///
 /// `phosphor` — monochrome (black background) with a small set of named phosphor
-/// presets (green/amber/white).  Used by Apple II and PET.
+/// presets (green/amber/white).  Used by PET.
 ///
 /// `palette` — a fixed hardware palette where the user picks foreground and
 /// background indices independently (C64, VIC-20, MS-DOS, etc.).
+///
+/// `phosphorOrPalette` — both available; the user toggles between phosphor
+/// presets and the named palette.  Used by Apple II 40/80-col so the iconic
+/// green/amber/white phosphor radio is preserved while still offering the
+/// IIgs 16-colour text palette for FG/BG selection.
 enum ColorMode: Equatable {
     case phosphor
     case palette(name: String, colors: [PaletteColor])
+    case phosphorOrPalette(name: String, colors: [PaletteColor])
 }
 
 /// User's current selection within a `.palette` color mode.
@@ -163,6 +169,96 @@ enum Palettes {
         .init( 5, "Dark Grey",      0x555555),
         .init( 6, "Steel Blue",     0x6688AA),
         .init( 7, "Sand",           0xFFAA77),
+    ]
+
+    /// Amstrad CPC — the full firmware palette of 27 colors (3×3×3 RGB cube).
+    /// Mode 1 used 4 of these, Mode 0 used 16; we expose all 27.
+    static let amstradCPC: [PaletteColor] = [
+        .init( 0, "Black",            0x000000),
+        .init( 1, "Blue",             0x000080),
+        .init( 2, "Bright Blue",      0x0000FF),
+        .init( 3, "Red",              0x800000),
+        .init( 4, "Magenta",          0x800080),
+        .init( 5, "Mauve",            0x8000FF),
+        .init( 6, "Bright Red",       0xFF0000),
+        .init( 7, "Purple",           0xFF0080),
+        .init( 8, "Bright Magenta",   0xFF00FF),
+        .init( 9, "Green",            0x008000),
+        .init(10, "Cyan",             0x008080),
+        .init(11, "Sky Blue",         0x0080FF),
+        .init(12, "Yellow",           0x808000),
+        .init(13, "White",            0x808080),
+        .init(14, "Pastel Blue",      0x8080FF),
+        .init(15, "Orange",           0xFF8000),
+        .init(16, "Pink",             0xFF8080),
+        .init(17, "Pastel Magenta",   0xFF80FF),
+        .init(18, "Bright Green",     0x00FF00),
+        .init(19, "Sea Green",        0x00FF80),
+        .init(20, "Bright Cyan",      0x00FFFF),
+        .init(21, "Lime",             0x80FF00),
+        .init(22, "Pastel Green",     0x80FF80),
+        .init(23, "Pastel Cyan",      0x80FFFF),
+        .init(24, "Bright Yellow",    0xFFFF00),
+        .init(25, "Pastel Yellow",    0xFFFF80),
+        .init(26, "Bright White",     0xFFFFFF),
+    ]
+
+    /// TRS-80 CoCo — Color Set 1 (8 colors) plus Black at index 0 so users
+    /// can pick a black background.  Indices roughly match the CoCo BASIC
+    /// SET command numbering shifted by 1.
+    static let coco: [PaletteColor] = [
+        .init( 0, "Black",      0x000000),
+        .init( 1, "Green",      0x07FF00),
+        .init( 2, "Yellow",     0xFFFF00),
+        .init( 3, "Blue",       0x3F00FF),
+        .init( 4, "Red",        0xFF0000),
+        .init( 5, "Buff",       0xFFFFC8),
+        .init( 6, "Cyan",       0x00FFCB),
+        .init( 7, "Magenta",    0xFF00FF),
+        .init( 8, "Orange",     0xFF8800),
+    ]
+
+    /// MSX — TMS9918A 16-color palette.  Index 0 (Transparent) is shown as
+    /// black so the swatch is pickable.
+    static let msx: [PaletteColor] = [
+        .init( 0, "Transparent",   0x000000),
+        .init( 1, "Black",         0x000000),
+        .init( 2, "Medium Green",  0x21C842),
+        .init( 3, "Light Green",   0x5EDC78),
+        .init( 4, "Dark Blue",     0x5455ED),
+        .init( 5, "Light Blue",    0x7D76FC),
+        .init( 6, "Dark Red",      0xD4524D),
+        .init( 7, "Cyan",          0x42EBF5),
+        .init( 8, "Medium Red",    0xFC5554),
+        .init( 9, "Light Red",     0xFF7978),
+        .init(10, "Dark Yellow",   0xD4C154),
+        .init(11, "Light Yellow",  0xE6CE80),
+        .init(12, "Dark Green",    0x21B03B),
+        .init(13, "Magenta",       0xC95BBA),
+        .init(14, "Grey",          0xCCCCCC),
+        .init(15, "White",         0xFFFFFF),
+    ]
+
+    /// Apple IIgs — the canonical 16 colors of the IIgs default text/SHR
+    /// palette (palette 0 in the IIgs ROM). 12-bit $0RGB values expanded to
+    /// 8-bit per channel.
+    static let appleIIgs: [PaletteColor] = [
+        .init( 0, "Black",        0x000000),
+        .init( 1, "Deep Red",     0xDD0033),
+        .init( 2, "Brown",        0x885500),
+        .init( 3, "Orange",       0xFF6600),
+        .init( 4, "Dark Green",   0x00AA00),
+        .init( 5, "Dark Grey",    0x555555),
+        .init( 6, "Green",        0x00DD00),
+        .init( 7, "Yellow",       0xFFFF00),
+        .init( 8, "Dark Blue",    0x000077),
+        .init( 9, "Magenta",      0xDD22DD),
+        .init(10, "Light Grey",   0xAAAAAA),
+        .init(11, "Pink",         0xFF99BB),
+        .init(12, "Blue",         0x2222FF),
+        .init(13, "Light Blue",   0x77AAFF),
+        .init(14, "Cyan",         0x66FFFF),
+        .init(15, "White",        0xFFFFFF),
     ]
 
     /// Atari ST — TOS low-res 16 with hi-res monochrome (black/white) at the

@@ -18,6 +18,10 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
     case amiga      = "Amiga"
     case atariST    = "Atari ST"
     case msDOS      = "MS-DOS"
+    case amstradCPC = "Amstrad CPC"
+    case coco       = "TRS-80 CoCo"
+    case msx40      = "MSX (40-col)"
+    case msx32      = "MSX (32-col)"
 
     var id: String { rawValue }
 
@@ -25,19 +29,23 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
 
     var columns: Int {
         switch self {
-        case .appleII40, .pet, .c64, .atari8bit:           return 40
-        case .appleII80, .c128, .amiga, .atariST, .msDOS:  return 80
-        case .vic20:                                        return 22
-        case .zxSpectrum:                                   return 32
+        case .appleII40, .pet, .c64, .atari8bit, .msx40:                 return 40
+        case .appleII80, .c128, .amiga, .atariST, .msDOS:                return 80
+        case .amstradCPC:                                                 return 40
+        case .vic20:                                                      return 22
+        case .zxSpectrum, .msx32:                                         return 32
+        case .coco:                                                       return 32
         }
     }
 
     /// Native row count for this platform's text screen.
     var rows: Int {
         switch self {
-        case .appleII40, .appleII80, .atari8bit, .zxSpectrum:    return 24
-        case .pet, .c64, .c128, .amiga, .atariST, .msDOS:        return 25
-        case .vic20:                                              return 23
+        case .appleII40, .appleII80, .atari8bit, .zxSpectrum,
+             .msx40, .msx32:                                              return 24
+        case .pet, .c64, .c128, .amiga, .atariST, .msDOS, .amstradCPC:    return 25
+        case .vic20:                                                       return 23
+        case .coco:                                                        return 16
         }
     }
 
@@ -68,6 +76,10 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
         case .amiga:                  return CGSize(width: 640,  height: 400)
         case .atariST:                return CGSize(width: 640,  height: 400)
         case .msDOS:                  return CGSize(width: 640,  height: 400)
+        case .amstradCPC:             return CGSize(width: 320,  height: 200)
+        case .coco:                   return CGSize(width: 256,  height: 192)
+        case .msx40:                  return CGSize(width: 240,  height: 192)
+        case .msx32:                  return CGSize(width: 256,  height: 192)
         }
     }
 
@@ -91,6 +103,10 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
         case .amiga:       return "Amiga Topaz"
         case .atariST:     return "Atari ST 8x16 System Font"
         case .msDOS:       return "Perfect DOS VGA 437"
+        case .amstradCPC:  return "Amstrad CPC464"
+        case .coco:        return "Hot CoCo"
+        case .msx40:       return "MSX Screen 0"
+        case .msx32:       return "MSX Screen 1"
         }
     }
 
@@ -101,7 +117,9 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
     /// with independent foreground/background hardware palette.
     var colorMode: ColorMode {
         switch self {
-        case .appleII40, .appleII80, .pet:
+        case .appleII40, .appleII80:
+            return .phosphorOrPalette(name: "Apple IIgs", colors: Palettes.appleIIgs)
+        case .pet:
             return .phosphor
         case .c64:
             return .palette(name: "C64",         colors: Palettes.c64)
@@ -119,6 +137,12 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
             return .palette(name: "Atari ST",    colors: Palettes.atariST)
         case .msDOS:
             return .palette(name: "CGA",         colors: Palettes.cga)
+        case .amstradCPC:
+            return .palette(name: "Amstrad CPC", colors: Palettes.amstradCPC)
+        case .coco:
+            return .palette(name: "CoCo",        colors: Palettes.coco)
+        case .msx40, .msx32:
+            return .palette(name: "MSX",         colors: Palettes.msx)
         }
     }
 
@@ -131,10 +155,12 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
         }
     }
 
-    /// Default palette FG/BG indices for `.palette` platforms.
-    /// (Ignored for `.phosphor` platforms.)
+    /// Default palette FG/BG indices for `.palette` and `.phosphorOrPalette`
+    /// platforms.  (Ignored for the pure `.phosphor` platforms.)
     var defaultPaletteSelection: PaletteSelection {
         switch self {
+        case .appleII40, .appleII80:
+                          return PaletteSelection(fgIndex: 15, bgIndex: 0)   // White on Black (IIgs default)
         case .c64:        return PaletteSelection(fgIndex: 14, bgIndex: 6)   // Light Blue on Blue
         case .c128:       return PaletteSelection(fgIndex: 14, bgIndex: 6)   // Light Blue on Blue
         case .vic20:      return PaletteSelection(fgIndex: 14, bgIndex: 6)   // Light Blue on Blue
@@ -143,8 +169,12 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
         case .amiga:      return PaletteSelection(fgIndex: 1,  bgIndex: 0)   // Black on Workbench Blue
         case .atariST:    return PaletteSelection(fgIndex: 0,  bgIndex: 15)  // Black on White (TOS hi-res)
         case .msDOS:      return PaletteSelection(fgIndex: 15, bgIndex: 0)   // White on Black
-        case .appleII40, .appleII80, .pet:
-            return PaletteSelection(fgIndex: 0, bgIndex: 0)                  // unused
+        case .amstradCPC: return PaletteSelection(fgIndex: 24, bgIndex: 1)   // Bright Yellow on Blue (CPC464 boot screen)
+        case .coco:       return PaletteSelection(fgIndex: 0,  bgIndex: 1)   // Black on Green (CoCo BASIC default)
+        case .msx40:      return PaletteSelection(fgIndex: 15, bgIndex: 4)   // White on Dark Blue (MSX BASIC default)
+        case .msx32:      return PaletteSelection(fgIndex: 15, bgIndex: 4)   // White on Dark Blue
+        case .pet:
+            return PaletteSelection(fgIndex: 0, bgIndex: 0)                  // unused (pure phosphor)
         }
     }
 
@@ -157,7 +187,9 @@ enum ComputerPlatform: String, CaseIterable, Identifiable, Equatable, Hashable {
         case .pet, .c64, .c128, .vic20:     return CharacterRamp.petsciiBlocks.id
         case .msDOS:                        return CharacterRamp.cp437Blocks.id
         case .atari8bit, .zxSpectrum,
-             .amiga, .atariST:              return CharacterRamp.standard.id
+             .amiga, .atariST,
+             .amstradCPC, .coco,
+             .msx40, .msx32:                return CharacterRamp.standard.id
         }
     }
 
