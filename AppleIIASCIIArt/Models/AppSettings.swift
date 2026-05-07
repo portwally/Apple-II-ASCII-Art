@@ -22,7 +22,8 @@ enum UITheme: String, CaseIterable, Identifiable {
         case .system:                       return .system
         case .appleII40, .appleII80:        return .appleII
         case .appleIIgs640, .appleIIgs320:  return .appleIIgs
-        case .commodore64, .vic20:          return .commodore
+        case .commodore64:                  return .commodore
+        case .vic20:                        return .vic20
         case .msDOS:                        return .msDOS
         }
     }
@@ -35,7 +36,8 @@ enum UITheme: String, CaseIterable, Identifiable {
         case .appleII80:     return "PRNumber3"
         case .appleIIgs640:  return "Shaston 640"
         case .appleIIgs320:  return "Shaston 320"
-        case .commodore64, .vic20: return "Pet Me 64"
+        case .commodore64:   return "Pet Me 64"
+        case .vic20:         return "Pet Me 64"   // 2X is too wide for sidebar labels
         case .msDOS:         return "Perfect DOS VGA 437"
         }
     }
@@ -49,7 +51,7 @@ enum UITheme: String, CaseIterable, Identifiable {
 
 /// The color/appearance family shared by one or more UITheme variants.
 enum ThemeFamily {
-    case system, appleII, appleIIgs, commodore, msDOS
+    case system, appleII, appleIIgs, commodore, vic20, msDOS
 
     /// macOS appearance to apply. Affects window chrome (titlebar, scrollbars,
     /// tooltips) so it matches the in-window palette.
@@ -59,6 +61,7 @@ enum ThemeFamily {
         case .appleII:   return NSAppearance(named: .darkAqua)
         case .appleIIgs: return NSAppearance(named: .aqua)
         case .commodore: return NSAppearance(named: .darkAqua)
+        case .vic20:     return NSAppearance(named: .aqua)        // light theme
         case .msDOS:     return NSAppearance(named: .darkAqua)
         }
     }

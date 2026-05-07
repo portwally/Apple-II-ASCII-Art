@@ -45,6 +45,7 @@ struct ChromeStyle {
         case .appleII:   return AppleIIThemeColors.background
         case .appleIIgs: return AppleIIgsThemeColors.background
         case .commodore: return C64ThemeColors.background
+        case .vic20:     return VIC20ThemeColors.background
         case .msDOS:     return DOSThemeColors.background
         }
     }
@@ -55,6 +56,7 @@ struct ChromeStyle {
         case .appleII:   return AppleIIThemeColors.secondaryBg
         case .appleIIgs: return AppleIIgsThemeColors.secondaryBg
         case .commodore: return C64ThemeColors.secondaryBg
+        case .vic20:     return VIC20ThemeColors.secondaryBg
         case .msDOS:     return DOSThemeColors.secondaryBg
         }
     }
@@ -65,6 +67,7 @@ struct ChromeStyle {
         case .appleII:   return AppleIIThemeColors.text
         case .appleIIgs: return AppleIIgsThemeColors.text
         case .commodore: return C64ThemeColors.text
+        case .vic20:     return VIC20ThemeColors.text
         case .msDOS:     return DOSThemeColors.text
         }
     }
@@ -75,6 +78,7 @@ struct ChromeStyle {
         case .appleII:   return AppleIIThemeColors.dimText
         case .appleIIgs: return AppleIIgsThemeColors.dimText
         case .commodore: return C64ThemeColors.dimText
+        case .vic20:     return VIC20ThemeColors.dimText
         case .msDOS:     return DOSThemeColors.dimText
         }
     }
@@ -85,6 +89,7 @@ struct ChromeStyle {
         case .appleII:   return AppleIIThemeColors.border
         case .appleIIgs: return AppleIIgsThemeColors.border
         case .commodore: return C64ThemeColors.border
+        case .vic20:     return VIC20ThemeColors.border
         case .msDOS:     return DOSThemeColors.border
         }
     }

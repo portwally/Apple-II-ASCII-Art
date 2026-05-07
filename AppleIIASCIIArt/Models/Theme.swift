@@ -25,7 +25,21 @@ enum AppleIIgsThemeColors {
     static let dividerThickness: CGFloat = 3
 }
 
-/// Commodore 64 / VIC-20 look — classic blue background, light-blue text.
+/// VIC-20 boot-screen look — iconic light-cyan border / white paper /
+/// dark text (the famous "**** CBM BASIC V2 ****" power-on screen).
+enum VIC20ThemeColors {
+    /// Light cyan — the VIC-20's canonical border colour (palette index 3).
+    static let background     = Color(red: 0xA6/255.0, green: 0xE5/255.0, blue: 0xF2/255.0)
+    /// White "paper" — the inner text-area background.
+    static let secondaryBg    = Color.white
+    /// Dark blue text — the canonical pen colour on the VIC-20 boot screen.
+    static let text           = Color(red: 0x2A/255.0, green: 0x4F/255.0, blue: 0xAA/255.0)
+    static let dimText        = Color(red: 0x60/255.0, green: 0x80/255.0, blue: 0xC0/255.0)
+    static let border         = Color(red: 0x2A/255.0, green: 0x4F/255.0, blue: 0xAA/255.0)
+    static let dividerThickness: CGFloat = 2
+}
+
+/// Commodore 64 look — classic blue background, light-blue text.
 /// Colors from BitPast's `C64Theme` (BitPast/AppSettings.swift:144-173).
 enum C64ThemeColors {
     /// #2E30A1 — classic C64 blue screen background.
