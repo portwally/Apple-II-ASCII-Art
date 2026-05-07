@@ -64,7 +64,7 @@ Each platform draws on its native screen aspect ratio (e.g. 280 × 192 for Apple
 ## Export options
 
 <p align="center">
-  <img src="docs/images/export-sheet.png" width="640" alt="Export sheet showing Apple II Disk Image, text and BASIC options">
+  <img src="docs/images/export-sheet.png" width="640" alt="Export sheet showing PNG Image (1x / 2x / 4x), Apple II Disk Image, Apple II Text, Mac Text, and Applesoft BASIC options">
 </p>
 
 ## Apple II disk creation
