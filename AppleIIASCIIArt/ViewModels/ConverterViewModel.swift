@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import UniformTypeIdentifiers
+import CoreGraphics
 
 @MainActor
 class ConverterViewModel: ObservableObject {
@@ -164,6 +165,45 @@ class ConverterViewModel: ObservableObject {
         guard let result else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(result.asPlainText(), forType: .string)
+    }
+
+    func exportPNG(scale: Int = 2) {
+        guard let result else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png]
+        panel.nameFieldStringValue = "\(sourceImageName.isEmpty ? "ascii_art" : sourceImageName).png"
+        let snap = settings
+        let res  = result
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { @MainActor in
+                let native  = snap.platform.screenSize
+                let exportW = native.width  * CGFloat(scale)
+                let exportH = native.height * CGFloat(scale)
+
+                let canvas = ASCIICanvas(result: res, settings: snap)
+                    .frame(width: exportW, height: exportH)
+
+                let renderer = ImageRenderer(content: canvas)
+                renderer.scale = 1.0   // frame already encodes the 4× size
+
+                guard let cgImage = renderer.cgImage else {
+                    self.errorMessage = "Could not render PNG image."
+                    return
+                }
+
+                let rep = NSBitmapImageRep(cgImage: cgImage)
+                guard let png = rep.representation(using: .png, properties: [:]) else {
+                    self.errorMessage = "Could not encode PNG data."
+                    return
+                }
+                do {
+                    try png.write(to: url)
+                } catch {
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
     }
 
     func exportProDOSDisk() {

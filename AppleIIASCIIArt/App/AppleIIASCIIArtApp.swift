@@ -1,7 +1,25 @@
 import SwiftUI
+import CoreText
 
 @main
 struct AppleIIASCIIArtApp: App {
+
+    init() {
+        // Register every .ttf and .otf in the app bundle so SwiftUI's
+        // .font(.custom()) can find them reliably.  INFOPLIST_KEY_ATSApplicationFontsPath
+        // is set in the build settings but Xcode does not inject
+        // ATSApplicationFontsPath into the generated Info.plist for macOS
+        // targets, so we fall back to programmatic registration here — which
+        // is guaranteed to work.
+        for ext in ["ttf", "otf"] {
+            if let urls = Bundle.main.urls(forResourcesWithExtension: ext, subdirectory: nil) {
+                for url in urls {
+                    CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+                }
+            }
+        }
+    }
+
     var body: some Scene {
         // Singleton main window — Window (not WindowGroup) so closing it just
         // hides the window and leaves the app running, and openWindow(id: "main")

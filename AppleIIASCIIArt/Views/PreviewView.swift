@@ -35,8 +35,8 @@ struct PreviewView: View {
     @ViewBuilder
     private func appleScreen(result: ASCIIResult, available: CGSize) -> some View {
         let size       = fitSize(in: available)
-        let screenBg   = vm.settings.screenColor.backgroundColor
-        let glowColor  = vm.settings.screenColor.foregroundColor
+        let screenBg   = vm.settings.resolvedBackground
+        let glowColor  = vm.settings.resolvedForeground
 
         ZStack {
             // Outer bezel
@@ -87,7 +87,7 @@ struct ASCIICanvas: View {
             let cellW    = size.width  / CGFloat(result.columns)
             let cellH    = size.height / CGFloat(result.rows)
             let fontName = settings.platform.fontName
-            let fgColor  = settings.screenColor.foregroundColor
+            let fgColor  = settings.resolvedForeground
 
             Canvas(
                 opaque: true,
@@ -95,7 +95,7 @@ struct ASCIICanvas: View {
                 rendersAsynchronously: false
             ) { context, _ in
                 context.fill(Path(CGRect(origin: .zero, size: size)),
-                             with: .color(settings.screenColor.backgroundColor))
+                             with: .color(settings.resolvedBackground))
 
                 for (rowIdx, row) in result.grid.enumerated() {
                     for (colIdx, char) in row.enumerated() {

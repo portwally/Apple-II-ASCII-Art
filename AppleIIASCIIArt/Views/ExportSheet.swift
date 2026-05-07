@@ -7,21 +7,23 @@ struct ExportSheet: View {
     private var isAppleII: Bool { vm.settings.platform.isAppleII }
 
     @State private var format: ExportFormat = .macText
+    @State private var pngScale: Int = 2
 
     enum ExportFormat: String, CaseIterable, Identifiable {
-        case prodosDisk    = "Apple II Disk Image (.po)"
-        case appleIIText   = "Apple II Text (.txt, CR endings)"
+        case prodosDisk     = "Apple II Disk Image (.po)"
+        case appleIIText    = "Apple II Text (.txt, CR endings)"
         case applesoftBASIC = "Applesoft BASIC (.bas)"
-        case macText       = "Mac Text (.txt, LF endings)"
+        case macText        = "Mac Text (.txt, LF endings)"
+        case pngImage       = "PNG Image"
         var id: String { rawValue }
     }
 
     /// Formats available for the current platform.
     private var availableFormats: [ExportFormat] {
         if isAppleII {
-            return ExportFormat.allCases
+            return ExportFormat.allCases   // includes .pngImage via allCases
         } else {
-            return [.macText]
+            return [.macText, .pngImage]
         }
     }
 
@@ -60,6 +62,21 @@ struct ExportSheet: View {
                     Text("Applesoft BASIC program using PRINT statements. RUN it on your Apple IIe/IIc/IIgs. Use PR#3 for 80-col output (included automatically).")
                 case .macText:
                     Text("Plain text with LF line endings for editing on Mac or transferring to any system.")
+                case .pngImage:
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker("Resolution", selection: $pngScale) {
+                            Text("Original (1×)").tag(1)
+                            Text("2× upscaled") .tag(2)
+                            Text("4× upscaled") .tag(4)
+                        }
+                        .pickerStyle(.radioGroup)
+                        .labelsHidden()
+
+                        let native = vm.settings.platform.screenSize
+                        let w = Int(native.width)  * pngScale
+                        let h = Int(native.height) * pngScale
+                        Text("\(w) × \(h) px — rendered with the selected font and screen colors.")
+                    }
                 }
             }
             .chromeFont(.caption)
@@ -79,6 +96,7 @@ struct ExportSheet: View {
                     case .appleIIText:    vm.exportText(appleII: true)
                     case .applesoftBASIC: vm.exportBASIC()
                     case .macText:        vm.exportText(appleII: false)
+                    case .pngImage:       vm.exportPNG(scale: pngScale)
                     }
                 }
                 .keyboardShortcut(.defaultAction)
@@ -86,7 +104,7 @@ struct ExportSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 460, height: 320)
+        .frame(width: 460, height: format == .pngImage ? 360 : 320)
         .chromeBackground(.main)
     }
 }

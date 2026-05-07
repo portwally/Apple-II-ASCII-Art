@@ -38,11 +38,10 @@ struct SettingsPanel: View {
             .pickerStyle(.menu)
             .labelsHidden()
             .onChange(of: vm.settings.platform) { _, newPlatform in
-                // Reset to the platform's native defaults on switch
-                vm.settings.rowCount       = newPlatform.rows
-                vm.settings.selectedRampID = newPlatform.defaultRampID
-                vm.settings.screenColor    = newPlatform.defaultScreenColor
-                vm.useCustomRamp           = false
+                // Restore this platform's remembered settings (or defaults).
+                // applyPlatform also resets rowCount and ramp.
+                vm.settings.applyPlatform(newPlatform)
+                vm.useCustomRamp = false
             }
         }
     }
@@ -155,11 +154,20 @@ struct SettingsPanel: View {
 
     // MARK: - Screen color
 
+    @ViewBuilder
     private var screenColorSection: some View {
-        let available = vm.settings.platform.availableScreenColors
-        return section(title: "Screen Color") {
-            Picker("", selection: $vm.settings.screenColor) {
-                ForEach(available) { color in
+        switch vm.settings.platform.colorMode {
+        case .phosphor:
+            phosphorSection
+        case .palette(let name, let colors):
+            paletteSection(name: name, colors: colors)
+        }
+    }
+
+    private var phosphorSection: some View {
+        section(title: "Screen Color") {
+            Picker("", selection: phosphorBinding) {
+                ForEach(ConversionSettings.ScreenColor.allCases) { color in
                     Label {
                         Text(color.rawValue)
                     } icon: {
@@ -173,6 +181,49 @@ struct SettingsPanel: View {
             .pickerStyle(.radioGroup)
             .labelsHidden()
         }
+    }
+
+    private func paletteSection(name: String, colors: [PaletteColor]) -> some View {
+        section(title: "Screen Color") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("\(name) palette")
+                    .chromeFont(.caption)
+                    .chromeForeground(.secondary)
+
+                Text("Foreground")
+                    .chromeFont(.caption)
+                    .chromeForeground(.secondary)
+                ColorSwatchGrid(colors: colors, selection: fgBinding)
+
+                Text("Background")
+                    .chromeFont(.caption)
+                    .chromeForeground(.secondary)
+                ColorSwatchGrid(colors: colors, selection: bgBinding)
+            }
+        }
+    }
+
+    // MARK: - Bindings into ConversionSettings's per-platform color memory
+
+    private var phosphorBinding: Binding<ConversionSettings.ScreenColor> {
+        Binding(
+            get: { vm.settings.currentPhosphor },
+            set: { vm.settings.currentPhosphor = $0 }
+        )
+    }
+
+    private var fgBinding: Binding<Int> {
+        Binding(
+            get: { vm.settings.paletteFGIndex },
+            set: { vm.settings.paletteFGIndex = $0 }
+        )
+    }
+
+    private var bgBinding: Binding<Int> {
+        Binding(
+            get: { vm.settings.paletteBGIndex },
+            set: { vm.settings.paletteBGIndex = $0 }
+        )
     }
 
     // MARK: - Helpers
