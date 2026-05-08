@@ -71,12 +71,20 @@ struct PreviewView: View {
             ZStack {
                 screenBg
 
+                // Always show the canvas — even during conversion — so the
+                // preview never blanks to a spinner and back.  The settings
+                // it uses match the new platform/ramp; the grid is the old
+                // result for ~30–100 ms, which is invisible in practice.
+                ASCIICanvas(result: result, settings: vm.settings)
+
                 if vm.isConverting {
                     ProgressView()
-                        .scaleEffect(0.7)
+                        .scaleEffect(0.5)
+                        .opacity(0.55)
                         .colorScheme(.dark)
-                } else {
-                    ASCIICanvas(result: result, settings: vm.settings)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity,
+                               alignment: .topTrailing)
+                        .padding(8)
                 }
             }
             .frame(width: size.width, height: size.height)
