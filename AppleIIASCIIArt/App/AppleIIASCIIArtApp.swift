@@ -47,6 +47,17 @@ struct AppleIIASCIIArtApp: App {
             }
         }
 
+        // Video converter window — separate from the image converter so its
+        // long-running frame-extraction / disk-export workflow doesn't fight
+        // with the image converter's UI.  Opened from the main toolbar's
+        // "Movie…" button.
+        Window("1977 Video", id: "video") {
+            VideoConverterView()
+        }
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
+        .defaultSize(width: 1000, height: 680)
+
         // Help window — also a singleton.
         Window("1977 Help", id: "help") {
             HelpView()

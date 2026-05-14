@@ -738,7 +738,7 @@ class ProDOSWriter {
     ///   - diskData: The ProDOS disk image data
     ///   - fileName: Name of the file to extract
     /// - Returns: File info including data, type, and auxtype
-    private func extractFileFromProDOS(_ diskData: Data, fileName: String) -> (data: Data, fileType: UInt8, auxType: UInt16)? {
+    func extractFileFromProDOS(_ diskData: Data, fileName: String) -> (data: Data, fileType: UInt8, auxType: UInt16)? {
         guard let (blockNum, entryOffset) = findFileEntry(diskData, fileName: fileName) else {
             return nil
         }

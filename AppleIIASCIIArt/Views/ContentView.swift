@@ -5,6 +5,7 @@ import AppKit
 struct ContentView: View {
     @StateObject private var vm = ConverterViewModel()
     @ObservedObject private var appSettings = AppSettings.shared
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         HSplitView {
@@ -104,6 +105,16 @@ struct ContentView: View {
             }
             .keyboardShortcut("o", modifiers: .command)
             .help("Open image file")
+        }
+
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                openWindow(id: "video")
+            } label: {
+                Label("Movie…", systemImage: "film")
+            }
+            .keyboardShortcut("m", modifiers: .command)
+            .help("Convert movie to ASCII art")
         }
     }
 }
