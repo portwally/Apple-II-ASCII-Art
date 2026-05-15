@@ -202,46 +202,63 @@ struct VideoDiskExporter {
 
     private static func startupSource(has40: Bool, has80: Bool,
                                       count40: Int, count80: Int) -> String {
+        // Single-mode disk: skip the menu and auto-launch the player.
+        // (A menu with only one option is confusing — users naturally
+        // press '1' even when the only entry is labelled '2', which
+        // matches nothing and loops back to the same screen.)
+        if has40 && !has80 {
+            var src = ""
+            src += "5 NOTRACE\r"
+            src += "10 HOME\r"
+            src += "20 PRINT CHR$(4);\"-PLAY40\""
+            return src
+        }
+        if has80 && !has40 {
+            var src = ""
+            src += "5 NOTRACE\r"
+            src += "10 HOME\r"
+            src += "20 PRINT CHR$(4);\"-PLAY80\""
+            return src
+        }
+
+        // Both modes available — show the picker menu.
         var src = ""
         src += "5 NOTRACE\r"
         src += "10 HOME\r"
         src += "20 PRINT \"            1977 VIDEO\"\r"
         src += "30 PRINT \"            ==========\"\r"
         src += "40 PRINT\r"
-        var line = 50
-        if has40 {
-            src += "\(line) PRINT \"  1) 40-COL  (\(count40) FRAMES)\"\r"; line += 10
-        }
-        if has80 {
-            src += "\(line) PRINT \"  2) 80-COL  (\(count80) FRAMES)\"\r"; line += 10
-        }
-        src += "\(line) PRINT\r"; line += 10
-        src += "\(line) PRINT \"  SELECT: \";\r"; line += 10
+        src += "50 PRINT \"  1) 40-COL  (\(count40) FRAMES)\"\r"
+        src += "60 PRINT \"  2) 80-COL  (\(count80) FRAMES)\"\r"
+        src += "70 PRINT\r"
+        src += "80 PRINT \"  SELECT: \";\r"
         // Credit pinned to row 23 of the 24-row screen.
-        src += "\(line) VTAB 23\r"; line += 10
-        src += "\(line) HTAB 1\r"; line += 10
-        src += "\(line) PRINT \"  2026 WALTER TENGLER\"\r"; line += 10
-        // Return cursor to the SELECT prompt
-        src += "\(line) VTAB 7\r"; line += 10
-        src += "\(line) HTAB 12\r"; line += 10
-        src += "\(line) GET A$\r"; line += 10
-        src += "\(line) PRINT A$\r"; line += 10
-        if has40 {
-            src += "\(line) IF A$ = \"1\" THEN PRINT CHR$(4);\"-PLAY40\"\r"; line += 10
-        }
-        if has80 {
-            src += "\(line) IF A$ = \"2\" THEN PRINT CHR$(4);\"-PLAY80\"\r"; line += 10
-        }
-        src += "\(line) GOTO 10"
+        src += "90 VTAB 23\r"
+        src += "100 HTAB 1\r"
+        src += "110 PRINT \"  2026 WALTER TENGLER\"\r"
+        // Return cursor to the SELECT prompt on row 7
+        // (HOME=row1, title=1, =====2, blank=3, 40-COL=4, 80-COL=5, blank=6, SELECT=7)
+        src += "120 VTAB 7\r"
+        src += "130 HTAB 12\r"
+        src += "140 GET A$\r"
+        src += "150 PRINT A$\r"
+        src += "160 IF A$ = \"1\" THEN PRINT CHR$(4);\"-PLAY40\"\r"
+        src += "170 IF A$ = \"2\" THEN PRINT CHR$(4);\"-PLAY80\"\r"
+        src += "180 GOTO 10"
         return src
     }
 
-    /// PLAY40 wrapper — clears the screen and BRUNs the player.
+    /// PLAY40 wrapper — clears the screen, prints a "LOADING" message
+    /// so the user has visible confirmation the BASIC ran, then BRUNs
+    /// the player. If the user sees the message but no animation, we
+    /// know the BAS executed but the ML player failed (and the on-screen
+    /// error code from the player tells us why).
     private static func playSource40() -> String {
         var src = ""
         src += "5 NOTRACE\r"
         src += "10 HOME\r"
-        src += "20 PRINT CHR$(4);\"BRUN PLAY40.BIN\""
+        src += "20 PRINT \"  LOADING 40-COL VIDEO...\"\r"
+        src += "30 PRINT CHR$(4);\"BRUN PLAY40.BIN\""
         return src
     }
 
@@ -254,7 +271,8 @@ struct VideoDiskExporter {
         var src = ""
         src += "5 NOTRACE\r"
         src += "10 HOME\r"
-        src += "20 PRINT CHR$(4);\"BRUN PLAY80.BIN\""
+        src += "20 PRINT \"  LOADING 80-COL VIDEO...\"\r"
+        src += "30 PRINT CHR$(4);\"BRUN PLAY80.BIN\""
         return src
     }
 

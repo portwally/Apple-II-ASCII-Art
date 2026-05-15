@@ -135,7 +135,7 @@ enum VideoMLPlayer {
         // OPARMS at $0982 (6 bytes):
         0x03,                   // $0982 param_count = 3
         0x92, 0x09,             // $0983 pathname    = $0992 (FNAME)
-        0x00, 0x10,             // $0985 io_buffer   = $1000
+        0x00, 0x70,             // $0985 io_buffer   = $7000  (avoid $1000 — BASIC.SYSTEM may have buffers there, MLI returns $50/"file busy")
         0x00,                   // $0987 ref_num     (output)
 
         // RPARMS at $0988 (8 bytes):
@@ -295,7 +295,7 @@ enum VideoMLPlayer {
         // OPARMS at $09A2 (6 bytes):
         0x03,                   // $09A2 param_count = 3
         0xB2, 0x09,             // $09A3 pathname    = $09B2 (FNAME)
-        0x00, 0x10,             // $09A5 io_buffer   = $1000
+        0x00, 0x70,             // $09A5 io_buffer   = $7000  (avoid $1000 — BASIC.SYSTEM may have buffers there)
         0x00,                   // $09A7 ref_num
 
         // RPARMS at $09A8 (8 bytes):

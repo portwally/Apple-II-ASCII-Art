@@ -93,4 +93,23 @@ struct CharacterRamp: Equatable, Identifiable, Hashable {
         // MS-DOS
         .cp437Blocks,
     ]
+
+    /// True if **every** character in the ramp is plain 7-bit ASCII
+    /// printable ($20–$7E). The Apple II character ROM only knows ASCII,
+    /// so any ramp containing PETSCII / CP437 / Unicode block characters
+    /// gets silently replaced with spaces when written to text page 1
+    /// (see `AppleIIScreenMemory.byte(for:)`). Use this to filter ramp
+    /// pickers for Apple II disk exports.
+    var isAppleIICompatible: Bool {
+        characters.allSatisfy { ch in
+            guard let v = ch.asciiValue else { return false }
+            return v >= 0x20 && v < 0x7F
+        }
+    }
+
+    /// Subset of `allPresets` whose characters all survive the Apple II
+    /// text-screen ROM. The video converter (which always targets Apple
+    /// II 40/80-col) uses this list instead of `allPresets` so users
+    /// can't pick a ramp that's guaranteed to render as dots-on-blank.
+    static let appleIIPresets: [CharacterRamp] = allPresets.filter { $0.isAppleIICompatible }
 }

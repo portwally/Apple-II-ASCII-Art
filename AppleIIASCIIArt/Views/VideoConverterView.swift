@@ -8,6 +8,8 @@ import UniformTypeIdentifiers
 struct VideoConverterView: View {
     @StateObject private var vm = VideoConverterViewModel()
     @ObservedObject private var appSettings = AppSettings.shared
+    @ObservedObject private var debugLog = AppDebugLog.shared
+    @State private var showDebugLog = false
 
     var body: some View {
         HSplitView {
@@ -104,8 +106,11 @@ struct VideoConverterView: View {
 
     private var rampSection: some View {
         section(title: "Character Ramp") {
+            // Apple II text page 1 can only display 7-bit ASCII glyphs —
+            // PETSCII / CP437 / Unicode-block ramps render as dots on the
+            // real hardware. Show only ramps that survive that ROM.
             Picker("", selection: $vm.settings.selectedRampID) {
-                ForEach(CharacterRamp.allPresets) { ramp in
+                ForEach(CharacterRamp.appleIIPresets) { ramp in
                     Text(ramp.displayName).tag(ramp.id)
                 }
                 Text("Custom").tag("custom")
@@ -115,11 +120,31 @@ struct VideoConverterView: View {
             .onChange(of: vm.settings.selectedRampID) { _, newVal in
                 vm.useCustomRamp = (newVal == "custom")
             }
+            .onAppear {
+                // If a previously chosen ramp isn't Apple II-compatible
+                // (e.g. user switched here from the image converter),
+                // snap back to the Classic preset so the picker has a
+                // valid selection.
+                let current = vm.settings.selectedRampID
+                let ok = CharacterRamp.appleIIPresets.contains { $0.id == current }
+                if !ok && !vm.useCustomRamp {
+                    vm.settings.selectedRampID = CharacterRamp.appleIIClassic.id
+                }
+            }
 
             if vm.useCustomRamp {
                 TextField("e.g.  .:-=+*#%@", text: $vm.customRampText)
                     .font(.custom(vm.previewSettings.platform.fontName, size: 13))
                     .textFieldStyle(.roundedBorder)
+                    .onChange(of: vm.customRampText) { _, newVal in
+                        // Strip non-ASCII chars from the custom ramp —
+                        // they'd become spaces in the disk export anyway.
+                        let filtered = newVal.filter { ch in
+                            guard let v = ch.asciiValue else { return false }
+                            return v >= 0x20 && v < 0x7F
+                        }
+                        if filtered != newVal { vm.customRampText = filtered }
+                    }
             } else {
                 Text(vm.settings.ramp.characters.map(String.init).joined())
                     .font(.custom(vm.previewSettings.platform.fontName, size: 11))
@@ -207,7 +232,73 @@ struct VideoConverterView: View {
             previewPane
             scrubBar
             statusBar
+            if showDebugLog {
+                debugPanel
+            }
         }
+    }
+
+    /// Live diagnostic log — collapsed by default, expand via the
+    /// "Debug" chevron in the status bar. Mirrors `appLog(...)` calls
+    /// from the extractor / VM so we don't have to open Console.app.
+    private var debugPanel: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Text("Debug log")
+                    .chromeFont(.caption)
+                    .chromeForeground(.secondary)
+                Spacer()
+                Button {
+                    let text = debugLog.lines.joined(separator: "\n")
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(text, forType: .string)
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 10))
+                }
+                .buttonStyle(.borderless)
+                .help("Copy log to clipboard")
+
+                Button {
+                    debugLog.clear()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 10))
+                }
+                .buttonStyle(.borderless)
+                .help("Clear log")
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(sidebarBackground)
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(debugLog.lines.enumerated()), id: \.offset) { idx, line in
+                            Text(line)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(.green)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .id(idx)
+                        }
+                    }
+                }
+                .background(Color.black)
+                .frame(height: 160)
+                .onChange(of: debugLog.lines.count) { _, count in
+                    guard count > 0 else { return }
+                    withAnimation(.linear(duration: 0.1)) {
+                        proxy.scrollTo(count - 1, anchor: .bottom)
+                    }
+                }
+            }
+        }
+        .overlay(Divider(), alignment: .top)
     }
 
     private var previewPane: some View {
@@ -372,6 +463,17 @@ struct VideoConverterView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
+            Button {
+                showDebugLog.toggle()
+            } label: {
+                Image(systemName: showDebugLog ? "chevron.down" : "chevron.up")
+                    .font(.system(size: 10))
+                Text("Debug")
+                    .chromeFont(.footnote)
+            }
+            .buttonStyle(.borderless)
+            .chromeForeground(.secondary)
+            .help(showDebugLog ? "Hide debug log" : "Show debug log")
         }
         .padding(.horizontal, 12)
         .frame(height: 28)
