@@ -86,6 +86,19 @@ Each disk carries:
 - **ART40.BIN / ART80.BIN** — raw screen-memory dumps the loaders BLOAD.
 - **STARTUP** — auto-runs at boot, shows the picker, smart-RUNs the chosen program with `PRINT CHR$(4);"-FILENAME"`.
 
+## Movie → Apple II video
+
+Drop an MP4 or MOV into the **Video** window and 1977 streams every frame through the same ASCII / LORES converter, then writes a bootable ProDOS disk that plays the video back on real Apple II / IIgs hardware. Four output modes ship on one disk — 40-col text, 80-col text, 40-col LORES color, 80-col Double-LORES color — with a built-in 6502 ML player that streams frames from disk into text-page 1 in real time.
+
+<p align="center">
+  <img src="docs/images/screenshot-video-dlores.png" width="640" alt="1977 Video converter window showing Both LORES (40+80) mode with an arcade scene previewed in Double-LORES color">
+</p>
+
+<p align="center">
+  <img src="docs/images/screenshot-video-iigs.png" width="640" alt="The exported video playing back on an Apple IIgs in MAME, showing the same arcade scene in Double-LORES color">
+  <br><em>Same frame playing back on Apple IIgs hardware — 80-col Double-LORES streamed from the ProDOS disk by the bundled 6502 ML player.</em>
+</p>
+
 ## Requirements
 
 - macOS 14 (Sonoma) or later

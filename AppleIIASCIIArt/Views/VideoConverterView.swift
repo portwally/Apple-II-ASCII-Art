@@ -560,11 +560,9 @@ struct VideoConverterView: View {
 
     private var statusBar: some View {
         HStack(spacing: 12) {
-            if vm.isExtracting || vm.isConverting || vm.isExporting {
-                ProgressView(value: vm.progress)
-                    .progressViewStyle(.linear)
-                    .frame(width: 160)
-            }
+            // Status-bar progress bar removed — the preview pane shows
+            // its own centered progress during extraction/conversion,
+            // and the export banner above the preview covers export.
             Text(vm.statusMessage.isEmpty
                  ? (vm.videoURL == nil ? "Open a movie to begin" : "Ready")
                  : vm.statusMessage)
