@@ -70,18 +70,36 @@ struct VideoDiskExporter {
         return d
     }
 
+    /// LORES variants — same byte counts as TEXT (LORES reuses text page 1).
+    private static func packFramesLores(_ frames: [LoresFrameResult]) -> Data {
+        var d = Data()
+        d.reserveCapacity(frames.count * 1024)
+        for f in frames { d.append(AppleIIScreenMemory.buildLores40(grid: f.indices)) }
+        return d
+    }
+    private static func packFramesDlores(_ frames: [LoresFrameResult]) -> Data {
+        var d = Data()
+        d.reserveCapacity(frames.count * 2048)
+        for f in frames { d.append(AppleIIScreenMemory.buildLores80(grid: f.indices)) }
+        return d
+    }
+
     // MARK: - Public entry point
 
     static func export(
         frames40: [ASCIIResult]?,
         frames80: [ASCIIResult]?,
+        framesLores:  [LoresFrameResult]? = nil,
+        framesDlores: [LoresFrameResult]? = nil,
         fps: Double,
         format: DiskImageFormat,
         to url: URL
     ) async throws {
-        guard (frames40?.isEmpty == false) || (frames80?.isEmpty == false) else {
-            throw DiskExportError.noFrames
-        }
+        let hasAny = (frames40?.isEmpty     == false) ||
+                     (frames80?.isEmpty     == false) ||
+                     (framesLores?.isEmpty  == false) ||
+                     (framesDlores?.isEmpty == false)
+        guard hasAny else { throw DiskExportError.noFrames }
 
         // Read the bundled template up front — we need its boot blocks +
         // PRODOS + BASIC.SYSTEM regardless of the requested disk size.
@@ -129,18 +147,24 @@ struct VideoDiskExporter {
 
         // STARTUP launcher
         let startupSrc = startupSource(
-            has40: frames40?.isEmpty == false,
-            has80: frames80?.isEmpty == false,
-            count40: frames40?.count ?? 0,
-            count80: frames80?.count ?? 0
+            has40: frames40?.isEmpty     == false,
+            has80: frames80?.isEmpty     == false,
+            hasLo: framesLores?.isEmpty  == false,
+            hasDl: framesDlores?.isEmpty == false,
+            count40: frames40?.count     ?? 0,
+            count80: frames80?.count     ?? 0,
+            countLo: framesLores?.count  ?? 0,
+            countDl: framesDlores?.count ?? 0
         )
         let startupTokens = ApplesoftTokenizer.tokenize(startupSrc)
         try await addFile(to: tempURL, name: "STARTUP",
                           data: startupTokens, type: 0xFC, aux: 0x0801)
 
-        // 40-col files
+        // 40-col TEXT files
         if let f40 = frames40, !f40.isEmpty {
-            let play40 = ApplesoftTokenizer.tokenize(playSource40())
+            let play40 = ApplesoftTokenizer.tokenize(
+                playWrapperSource(label: "40-COL VIDEO",
+                                  binName: "PLAY40.BIN"))
             try await addFile(to: tempURL, name: "PLAY40",
                               data: play40, type: 0xFC, aux: 0x0801)
 
@@ -155,9 +179,11 @@ struct VideoDiskExporter {
                               data: packFrames40(f40), type: 0x06, aux: 0x0000)
         }
 
-        // 80-col files
+        // 80-col TEXT files
         if let f80 = frames80, !f80.isEmpty {
-            let play80 = ApplesoftTokenizer.tokenize(playSource80())
+            let play80 = ApplesoftTokenizer.tokenize(
+                playWrapperSource(label: "80-COL VIDEO",
+                                  binName: "PLAY80.BIN"))
             try await addFile(to: tempURL, name: "PLAY80",
                               data: play80, type: 0xFC, aux: 0x0801)
 
@@ -170,6 +196,44 @@ struct VideoDiskExporter {
 
             try await addFile(to: tempURL, name: "FRAMES80",
                               data: packFrames80(f80), type: 0x06, aux: 0x0000)
+        }
+
+        // 40-col LORES files (color blocks, /VIDEO/FRAMESLO)
+        if let fLo = framesLores, !fLo.isEmpty {
+            let playLo = ApplesoftTokenizer.tokenize(
+                playWrapperSource(label: "40-COL LORES VIDEO",
+                                  binName: "PLAYLO.BIN"))
+            try await addFile(to: tempURL, name: "PLAYLO",
+                              data: playLo, type: 0xFC, aux: 0x0801)
+
+            let playerLo = VideoMLPlayer.patched(
+                VideoMLPlayer.playLoresBytes,
+                frameCount: fLo.count, fps: fps, twoKBFrame: false
+            )
+            try await addFile(to: tempURL, name: "PLAYLO.BIN",
+                              data: playerLo, type: 0x06, aux: 0x0900)
+
+            try await addFile(to: tempURL, name: "FRAMESLO",
+                              data: packFramesLores(fLo), type: 0x06, aux: 0x0000)
+        }
+
+        // 80-col DLORES files (color blocks, /VIDEO/FRAMESDL)
+        if let fDl = framesDlores, !fDl.isEmpty {
+            let playDl = ApplesoftTokenizer.tokenize(
+                playWrapperSource(label: "80-COL DLORES VIDEO",
+                                  binName: "PLAYDL.BIN"))
+            try await addFile(to: tempURL, name: "PLAYDL",
+                              data: playDl, type: 0xFC, aux: 0x0801)
+
+            let playerDl = VideoMLPlayer.patched(
+                VideoMLPlayer.playDloresBytes,
+                frameCount: fDl.count, fps: fps, twoKBFrame: true
+            )
+            try await addFile(to: tempURL, name: "PLAYDL.BIN",
+                              data: playerDl, type: 0x06, aux: 0x0900)
+
+            try await addFile(to: tempURL, name: "FRAMESDL",
+                              data: packFramesDlores(fDl), type: 0x06, aux: 0x0000)
         }
 
         // Wrap in container format and write to the user's URL.
@@ -201,78 +265,133 @@ struct VideoDiskExporter {
     // MARK: - BASIC source
 
     private static func startupSource(has40: Bool, has80: Bool,
-                                      count40: Int, count80: Int) -> String {
-        // Single-mode disk: skip the menu and auto-launch the player.
-        // (A menu with only one option is confusing — users naturally
-        // press '1' even when the only entry is labelled '2', which
-        // matches nothing and loops back to the same screen.)
-        if has40 && !has80 {
-            var src = ""
-            src += "5 NOTRACE\r"
-            src += "10 HOME\r"
-            src += "20 PRINT CHR$(4);\"-PLAY40\""
-            return src
+                                      hasLo: Bool, hasDl: Bool,
+                                      count40: Int, count80: Int,
+                                      countLo: Int, countDl: Int) -> String {
+        // Collect the available modes in display order with their target
+        // smart-RUN names.
+        struct MenuEntry {
+            let label: String   // e.g. "40-COL TEXT (5489 FRAMES)"
+            let runArg: String  // e.g. "-PLAY40"
         }
-        if has80 && !has40 {
+        var entries: [MenuEntry] = []
+        if has40 { entries.append(.init(label: "40-COL TEXT  (\(count40) FRAMES)",  runArg: "-PLAY40")) }
+        if has80 { entries.append(.init(label: "80-COL TEXT  (\(count80) FRAMES)",  runArg: "-PLAY80")) }
+        if hasLo { entries.append(.init(label: "40-COL LORES (\(countLo) FRAMES)",  runArg: "-PLAYLO")) }
+        if hasDl { entries.append(.init(label: "80-COL DLORES(\(countDl) FRAMES)",  runArg: "-PLAYDL")) }
+
+        // Single-mode disk: skip the menu and auto-launch the player.
+        if entries.count == 1 {
             var src = ""
             src += "5 NOTRACE\r"
             src += "10 HOME\r"
-            src += "20 PRINT CHR$(4);\"-PLAY80\""
+            src += "20 PRINT CHR$(4);\"\(entries[0].runArg)\""
             return src
         }
 
-        // Both modes available — show the picker menu.
+        // Multi-mode disk — show the picker menu. Options are renumbered
+        // sequentially so the labels match keys '1'..'N' regardless of
+        // which combination is present.
         var src = ""
         src += "5 NOTRACE\r"
         src += "10 HOME\r"
         src += "20 PRINT \"            1977 VIDEO\"\r"
         src += "30 PRINT \"            ==========\"\r"
         src += "40 PRINT\r"
-        src += "50 PRINT \"  1) 40-COL  (\(count40) FRAMES)\"\r"
-        src += "60 PRINT \"  2) 80-COL  (\(count80) FRAMES)\"\r"
-        src += "70 PRINT\r"
-        src += "80 PRINT \"  SELECT: \";\r"
+
+        var line = 50
+        // SELECT prompt sits on row N+3 where N = number of menu rows
+        // (title=1, ==== =2, blank=3, options=4..4+entries-1, blank, SELECT)
+        for (idx, entry) in entries.enumerated() {
+            src += "\(line) PRINT \"  \(idx + 1)) \(entry.label)\"\r"
+            line += 10
+        }
+        src += "\(line) PRINT\r"; line += 10
+        src += "\(line) PRINT \"  SELECT: \";\r"; line += 10
+        let selectRow = 4 + entries.count + 1   // row where SELECT was printed
+
         // Credit pinned to row 23 of the 24-row screen.
-        src += "90 VTAB 23\r"
-        src += "100 HTAB 1\r"
-        src += "110 PRINT \"  2026 WALTER TENGLER\"\r"
-        // Return cursor to the SELECT prompt on row 7
-        // (HOME=row1, title=1, =====2, blank=3, 40-COL=4, 80-COL=5, blank=6, SELECT=7)
-        src += "120 VTAB 7\r"
-        src += "130 HTAB 12\r"
-        src += "140 GET A$\r"
-        src += "150 PRINT A$\r"
-        src += "160 IF A$ = \"1\" THEN PRINT CHR$(4);\"-PLAY40\"\r"
-        src += "170 IF A$ = \"2\" THEN PRINT CHR$(4);\"-PLAY80\"\r"
-        src += "180 GOTO 10"
+        src += "\(line) VTAB 23\r"; line += 10
+        src += "\(line) HTAB 1\r"; line += 10
+        src += "\(line) PRINT \"  2026 WALTER TENGLER\"\r"; line += 10
+
+        // Return cursor next to "  SELECT: " on the SELECT row.
+        src += "\(line) VTAB \(selectRow)\r"; line += 10
+        src += "\(line) HTAB 12\r"; line += 10
+        src += "\(line) GET A$\r"; line += 10
+        src += "\(line) PRINT A$\r"; line += 10
+        for (idx, entry) in entries.enumerated() {
+            src += "\(line) IF A$ = \"\(idx + 1)\" THEN PRINT CHR$(4);\"\(entry.runArg)\"\r"
+            line += 10
+        }
+        src += "\(line) GOTO 10"
         return src
     }
 
-    /// PLAY40 wrapper — clears the screen, prints a "LOADING" message
-    /// so the user has visible confirmation the BASIC ran, then BRUNs
-    /// the player. If the user sees the message but no animation, we
-    /// know the BAS executed but the ML player failed (and the on-screen
-    /// error code from the player tells us why).
-    private static func playSource40() -> String {
+    /// Builds a player wrapper: HOME → LOADING msg → BRUN player → (player
+    /// runs animation, then RTS-es back) → "PLAY AGAIN? (Y/N)" prompt →
+    /// re-BRUN on Y, exit on N.
+    ///
+    /// **Why the wrapper has to be tiny.** Applesoft programs load at
+    /// `$0801` and the player binary is `BRUN`-ed at `$0900` — only
+    /// **255 bytes** of program space before the two regions collide. If
+    /// the tokenized BASIC overflows past `$0900`, the `BRUN` overwrites
+    /// the still-pending lines (you can see the damage by `LIST`-ing
+    /// after playback: the lines past the overflow point decode as
+    /// nonsense tokens — the player's machine code). Each BASIC line
+    /// costs 5 bytes of overhead, so the wrapper still packs statements
+    /// where it can.
+    ///
+    /// **BRUN must be on its own line.** When `PRINT CHR$(4);"BRUN ..."`
+    /// fires, BASIC.SYSTEM intercepts the Ctrl-D, swallows the rest of
+    /// the line as its command, and resumes Applesoft at the *next*
+    /// program line. If `BRUN` is buried in the middle of a multi-
+    /// statement line, the resume path corrupts Applesoft's text-pointer
+    /// state and you get `?SYNTAX ERROR IN 10` after the player returns
+    /// — even though the `LIST` of that line looks fine. Keeping `BRUN`
+    /// as the only statement on its line sidesteps that.
+    ///
+    /// **Display reset after BRUN.** The player can leave the machine
+    /// in 40-col text, 80-col text (PR#3 active), LORES, or DLORES.
+    /// `POKE -16289,0` (STA `$C05F`) clears DHIRES (for DLORES). `TEXT`
+    /// switches the display to text — for 80-col modes the slot-3 card
+    /// is still hooked, so `HOME` clears both AUX and MAIN banks
+    /// (without this, AUX still holds the last DLORES frame and shows
+    /// up as garbled characters around the prompt).
+    ///
+    /// **Exit behavior.** Single-mode disks `END` to the BASIC prompt;
+    /// multi-mode disks `-STARTUP` so the user lands back at the menu.
+    /// Both paths first `PR# 0` to close the 80-col card so STARTUP
+    /// renders in plain 40-col.
+    /// Player wrapper — `HOME` → `LOADING` msg → `BRUN` player → reset
+    /// display → re-launch `STARTUP`. Single-mode disks loop the same
+    /// video continuously (STARTUP auto-launches the only mode);
+    /// multi-mode disks land back on the menu so the user can pick
+    /// again. No interactive prompt — the user reboots (Ctrl-Reset) to
+    /// quit, which is the standard Apple II "I'm done" gesture.
+    ///
+    /// **`NOTRACE` after the BRUN.** Something during slot-3 firmware
+    /// init (`JSR $C300` inside the 80-col / DLORES players) leaves
+    /// Applesoft's trace flag at `$F2` non-zero, so subsequent lines
+    /// print as `#NN`. Explicit `NOTRACE` clears the flag before we
+    /// re-launch STARTUP.
+    ///
+    /// **Why every statement is on its own line.** A `PRINT
+    /// CHR$(4);"BRUN …"` mid-line corrupts Applesoft's text pointer on
+    /// return; multi-statement lines after a Ctrl-D handoff also tend
+    /// to trip the keyboard-hook quirks. Single-statement lines avoid
+    /// all of that.
+    private static func playWrapperSource(label: String,
+                                          binName: String) -> String {
+        _ = label   // intentionally unused — mode label dropped from msg
         var src = ""
-        src += "5 NOTRACE\r"
         src += "10 HOME\r"
-        src += "20 PRINT \"  LOADING 40-COL VIDEO...\"\r"
-        src += "30 PRINT CHR$(4);\"BRUN PLAY40.BIN\""
-        return src
-    }
-
-    /// PLAY80 wrapper — BRUN while still in 40-col mode.
-    /// The player itself switches to 80-col via JSR $C300 after MLI OPEN,
-    /// avoiding the BASIC.SYSTEM Ctrl-D bug where PR# 3 before a Ctrl-D
-    /// command leaves COUT redirected to the 80-col card and the BRUN
-    /// never reaches BASIC.SYSTEM.
-    private static func playSource80() -> String {
-        var src = ""
-        src += "5 NOTRACE\r"
-        src += "10 HOME\r"
-        src += "20 PRINT \"  LOADING 80-COL VIDEO...\"\r"
-        src += "30 PRINT CHR$(4);\"BRUN PLAY80.BIN\""
+        src += "20 PRINT \"LOADING...\"\r"
+        src += "30 PRINT CHR$(4);\"BRUN \(binName)\"\r"
+        src += "40 NOTRACE\r"
+        src += "50 POKE -16289,0\r"
+        src += "60 PR# 0\r"
+        src += "70 PRINT CHR$(4);\"-STARTUP\""
         return src
     }
 

@@ -166,6 +166,97 @@ enum AppleIIScreenMemory {
         return out
     }
 
+    // MARK: - LORES (40 cols × 48 vert) — text page 1, color blocks
+    //
+    // Same memory layout as 40-col text: one byte per text-cell, with
+    // text-page line interleaving. Each byte represents TWO stacked
+    // color blocks: low nibble = top half, high nibble = bottom half.
+    // So a `LoresFrameResult` of size 40×48 maps to 40×24 bytes, and
+    // each byte combines two vertically-adjacent grid rows.
+
+    /// Build a 1024-byte `$0400`-format LORES dump (40 cols × 48 rows).
+    /// `grid[row][col]` holds palette indices (0-15).
+    static func buildLores40(grid: [[UInt8]]) -> Data {
+        var buffer = Data(count: pageSize)
+        let textRows = min(grid.count / 2, rowsPerScreen)   // 48 → 24 byte-rows
+        for textRow in 0..<textRows {
+            let lineBase = lineOffset(forRow: textRow)
+            for col in 0..<40 {
+                let topRow = textRow * 2
+                let botRow = textRow * 2 + 1
+                let top: UInt8 = (topRow < grid.count && col < grid[topRow].count)
+                    ? (grid[topRow][col] & 0x0F) : 0
+                let bot: UInt8 = (botRow < grid.count && col < grid[botRow].count)
+                    ? (grid[botRow][col] & 0x0F) : 0
+                buffer[lineBase + col] = (bot << 4) | top
+            }
+        }
+        return buffer
+    }
+
+    // MARK: - DLORES (80 cols × 48 vert) — text page 1 + AUX, color blocks
+    //
+    // Per the //e Tech Ref: even grid cols (0, 2, 4, …, 78) go to AUX `$0400`
+    // (left half of each 14-pixel cell), odd cols to MAIN `$0400` (right
+    // half). Bytes encode two stacked colors as LORES does.
+    //
+    // **DLORES AUX nibble rotation** — the IOU routes AUX bytes through the
+    // DHIRES shift register, which delivers bits to the video DAC offset by
+    // one bit position relative to MAIN. The LORES decoder reading each
+    // 4-bit color nibble out of that stream therefore sees AUX nibbles
+    // **rotated left by 1 bit** vs. how they're stored. To compensate, we
+    // rotate each color nibble **right by 1 bit** before packing it into
+    // an AUX byte — so hardware's rotate-left undoes our rotate-right.
+    //
+    // Without compensation the AUX columns show a fixed mis-permutation
+    // (e.g. light blue ↔ yellow, orange ↔ purple, pink ↔ light-blue,
+    // light-gray ↔ dark-gray). Colors 0 and 15 are rotation-invariant and
+    // happen to look correct either way, which is why the bug is only
+    // visible in palettes that hit the mapped colors.
+    //
+    // 80-col TEXT mode doesn't hit this because character bytes index the
+    // character ROM via address pins, bypassing the pixel shift register.
+
+    /// Build a 2048-byte combined DLORES dump (80 cols × 48 rows).
+    /// First 1024 bytes → AUX `$0400` (even grid cols, nibbles rotated right).
+    /// Next  1024 bytes → MAIN `$0400` (odd grid cols, nibbles as-is).
+    static func buildLores80(grid: [[UInt8]]) -> Data {
+        var aux  = Data(count: pageSize)
+        var main = Data(count: pageSize)
+        let textRows = min(grid.count / 2, rowsPerScreen)
+        for textRow in 0..<textRows {
+            let lineBase = lineOffset(forRow: textRow)
+            let topRow = textRow * 2
+            let botRow = textRow * 2 + 1
+            for col in 0..<80 {
+                let top: UInt8 = (topRow < grid.count && col < grid[topRow].count)
+                    ? (grid[topRow][col] & 0x0F) : 0
+                let bot: UInt8 = (botRow < grid.count && col < grid[botRow].count)
+                    ? (grid[botRow][col] & 0x0F) : 0
+                let halfCol = col / 2
+                if col % 2 == 0 {
+                    // AUX bank — pre-rotate nibbles right so hardware's
+                    // rotate-left (one-bit shift-register offset) lands on
+                    // the intended color.
+                    aux[lineBase + halfCol]  = (rorNibble(bot) << 4) | rorNibble(top)
+                } else {
+                    // MAIN bank — natural nibble order.
+                    main[lineBase + halfCol] = (bot << 4) | top
+                }
+            }
+        }
+        return aux + main
+    }
+
+    /// Rotate a 4-bit nibble right by 1 bit: bit 0 wraps to bit 3.
+    /// Used to compensate for the AUX-bank one-bit shift in DLORES, where
+    /// the hardware effectively rotates each AUX nibble left before
+    /// passing it to the LORES color decoder.
+    private static func rorNibble(_ n: UInt8) -> UInt8 {
+        let a = n & 0x0F
+        return ((a >> 1) & 0x07) | ((a & 0x01) << 3)
+    }
+
     // MARK: - Helpers
 
     private static func lineOffset(forRow row: Int) -> Int {

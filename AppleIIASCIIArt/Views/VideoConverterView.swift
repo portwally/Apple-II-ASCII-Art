@@ -8,8 +8,10 @@ import UniformTypeIdentifiers
 struct VideoConverterView: View {
     @StateObject private var vm = VideoConverterViewModel()
     @ObservedObject private var appSettings = AppSettings.shared
-    @ObservedObject private var debugLog = AppDebugLog.shared
-    @State private var showDebugLog = false
+    // Debug log UI temporarily disabled — keep wired up so we can re-enable
+    // by flipping these back on alongside the panel/toggle below.
+    // @ObservedObject private var debugLog = AppDebugLog.shared
+    // @State private var showDebugLog = false
 
     var body: some View {
         HSplitView {
@@ -47,7 +49,11 @@ struct VideoConverterView: View {
                 modeSection
                 formatSection
                 Divider()
-                rampSection
+                // Character ramp only applies to text modes — LORES uses
+                // a fixed 16-color palette, no ramp concept.
+                if !vm.colMode.isLores {
+                    rampSection
+                }
                 adjustmentsSection
                 flipSection
                 Divider()
@@ -76,6 +82,28 @@ struct VideoConverterView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .disabled(vm.isExtracting || vm.isConverting)
+
+            // The fps slider only changes playback speed for the
+            // already-extracted frames. To sample the source video at
+            // a different density, the user has to hit Re-extract — it
+            // re-runs the full AVAssetReader pipeline at the new fps.
+            if vm.videoURL != nil {
+                HStack(spacing: 6) {
+                    Text("fps = playback speed only.")
+                        .chromeFont(.caption)
+                        .chromeForeground(.secondary)
+                    Spacer()
+                    Button {
+                        Task { @MainActor in await vm.processFrames() }
+                    } label: {
+                        Label("Re-extract", systemImage: "arrow.clockwise")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .controlSize(.small)
+                    .disabled(vm.isExtracting || vm.isConverting)
+                    .help("Re-extract frames from the source at \(Int(vm.targetFPS)) fps — replaces the current frame buffer")
+                }
+            }
         }
     }
 
@@ -229,15 +257,22 @@ struct VideoConverterView: View {
 
     private var mainArea: some View {
         VStack(spacing: 0) {
+            if vm.isExporting {
+                exportBanner
+            }
             previewPane
             scrubBar
             statusBar
-            if showDebugLog {
-                debugPanel
-            }
+            // Debug log panel temporarily disabled — re-enable along
+            // with the @State / @ObservedObject above and the toggle
+            // button in `statusBar`.
+            // if showDebugLog {
+            //     debugPanel
+            // }
         }
     }
 
+    /*
     /// Live diagnostic log — collapsed by default, expand via the
     /// "Debug" chevron in the status bar. Mirrors `appLog(...)` calls
     /// from the extractor / VM so we don't have to open Console.app.
@@ -300,6 +335,30 @@ struct VideoConverterView: View {
         }
         .overlay(Divider(), alignment: .top)
     }
+    */
+
+    /// Full-width export-progress banner shown above the preview while
+    /// `VideoDiskExporter.export(...)` is running. The exporter currently
+    /// runs as a single `await` with no per-step progress callback, so
+    /// the bar is **indeterminate** — it animates to show activity but
+    /// doesn't claim a percentage we don't actually know.
+    private var exportBanner: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+                .progressViewStyle(.linear)
+                .frame(maxWidth: .infinity)
+            Text(vm.statusMessage.isEmpty ? "Writing disk image…" : vm.statusMessage)
+                .chromeFont(.footnote)
+                .chromeForeground(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: 280, alignment: .leading)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(sidebarBackground)
+        .overlay(Divider(), alignment: .bottom)
+    }
 
     private var previewPane: some View {
         GeometryReader { geo in
@@ -316,8 +375,13 @@ struct VideoConverterView: View {
                         acceptedTypes: [.mpeg4Movie, .quickTimeMovie]
                     )
                     .padding(40)
-                } else if let frame = vm.previewFrame {
-                    appleScreen(result: frame, available: geo.size)
+                } else if let preview = vm.previewFrame {
+                    switch preview {
+                    case .text(let result):
+                        appleScreen(result: result, available: geo.size)
+                    case .lores(let frame):
+                        appleScreenLores(frame: frame, available: geo.size)
+                    }
                 } else if vm.isExtracting || vm.isConverting {
                     VStack(spacing: 12) {
                         ProgressView(value: vm.progress)
@@ -344,6 +408,42 @@ struct VideoConverterView: View {
         } else {
             Color(NSColor.windowBackgroundColor)
         }
+    }
+
+    /// LORES preview — solid color rectangles in the same bezel + glow
+    /// chrome as the text preview, sized to the Apple II screen aspect
+    /// (280×192 = ~1.46:1).
+    @ViewBuilder
+    private func appleScreenLores(frame: LoresFrameResult, available: CGSize) -> some View {
+        let aspect: CGFloat = 280.0 / 192.0
+        let maxW = available.width  - 60
+        let maxH = available.height - 60
+        let size: CGSize = (maxW / aspect <= maxH)
+            ? CGSize(width: maxW, height: maxW / aspect)
+            : CGSize(width: maxH * aspect, height: maxH)
+
+        ZStack {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color(red: 0.18, green: 0.18, blue: 0.18))
+                .frame(width: size.width + 24, height: size.height + 24)
+
+            ZStack {
+                Color.black
+                LoresCanvas(frame: frame)
+                if vm.isConverting || vm.isExtracting || vm.isExporting {
+                    ProgressView()
+                        .scaleEffect(0.5)
+                        .opacity(0.55)
+                        .colorScheme(.dark)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity,
+                               alignment: .topTrailing)
+                        .padding(8)
+                }
+            }
+            .frame(width: size.width, height: size.height)
+            // No CRT glow tint — LORES output has its own color per pixel.
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
@@ -384,11 +484,21 @@ struct VideoConverterView: View {
     }
 
     private var scrubBar: some View {
-        let activeList = vm.previewUses80 ? vm.frames80 : vm.frames40
-        let count = activeList.count
+        // Count active frames for whichever mode + 40/80 side we're on.
+        let count: Int = {
+            if vm.colMode.isLores {
+                return (vm.previewUses80 ? vm.framesDl : vm.framesLo).count
+            } else {
+                return (vm.previewUses80 ? vm.frames80 : vm.frames40).count
+            }
+        }()
+        // Show the 40 / 80 toggle only when both sides of the current
+        // mode family have content.
+        let showToggle: Bool = vm.colMode.isLores
+            ? (!vm.framesLo.isEmpty && !vm.framesDl.isEmpty)
+            : (!vm.frames40.isEmpty && !vm.frames80.isEmpty)
         return HStack(spacing: 10) {
-            // 40 / 80 toggle (only shown when both modes are loaded)
-            if !vm.frames40.isEmpty && !vm.frames80.isEmpty {
+            if showToggle {
                 Picker("", selection: $vm.previewUses80) {
                     Text("40").tag(false)
                     Text("80").tag(true)
@@ -463,17 +573,19 @@ struct VideoConverterView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
-            Button {
-                showDebugLog.toggle()
-            } label: {
-                Image(systemName: showDebugLog ? "chevron.down" : "chevron.up")
-                    .font(.system(size: 10))
-                Text("Debug")
-                    .chromeFont(.footnote)
-            }
-            .buttonStyle(.borderless)
-            .chromeForeground(.secondary)
-            .help(showDebugLog ? "Hide debug log" : "Show debug log")
+            // Debug log toggle temporarily disabled — re-enable alongside
+            // the @State / @ObservedObject and the debugPanel view above.
+            // Button {
+            //     showDebugLog.toggle()
+            // } label: {
+            //     Image(systemName: showDebugLog ? "chevron.down" : "chevron.up")
+            //         .font(.system(size: 10))
+            //     Text("Debug")
+            //         .chromeFont(.footnote)
+            // }
+            // .buttonStyle(.borderless)
+            // .chromeForeground(.secondary)
+            // .help(showDebugLog ? "Hide debug log" : "Show debug log")
         }
         .padding(.horizontal, 12)
         .frame(height: 28)
@@ -491,7 +603,13 @@ struct VideoConverterView: View {
             } label: {
                 Label("Export Disk", systemImage: "internaldrive")
             }
-            .disabled(vm.frames40.isEmpty && vm.frames80.isEmpty || vm.isExporting)
+            // Enable as soon as ANY frame buffer has content — text 40,
+            // text 80, LORES 40, or DLORES 80. The original check only
+            // looked at the text buffers, which meant the button greyed
+            // itself out for LORES-only exports.
+            .disabled((vm.frames40.isEmpty && vm.frames80.isEmpty
+                       && vm.framesLo.isEmpty && vm.framesDl.isEmpty)
+                      || vm.isExporting)
             .keyboardShortcut("e", modifiers: .command)
             .help("Export bootable ProDOS disk image")
         }

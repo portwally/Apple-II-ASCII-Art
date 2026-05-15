@@ -316,6 +316,85 @@ enum VideoMLPlayer {
         0x46, 0x52, 0x41, 0x4D, 0x45, 0x53, 0x38, 0x30,             // "FRAMES80"
     ]
 
+    // MARK: - LORES (40 cols × 48 vert color blocks)
+    //
+    // Identical to `play40Bytes` except:
+    //   • The post-OPEN `JSR $FC58` (HOME) at `$0923` is swapped for
+    //     `JSR $09A2` — a tiny SETLORES subroutine appended after the
+    //     text-mode player's FNAME.
+    //   • FNAME tail changes from "FRAMES40" to "FRAMESLO" so the
+    //     player opens `/VIDEO/FRAMESLO` instead of the text frames.
+    //
+    // SETLORES (5 instructions, 13 bytes at $09A2):
+    //     STA $C050  ; TEXT off / GR on
+    //     STA $C052  ; MIXED off (full graphics)
+    //     STA $C056  ; HIRES off → LORES
+    //     STA $C054  ; PAGE2 off (TXTPAGE1 — main $0400)
+    //     RTS
+    static let playLoresBytes: [UInt8] = {
+        var b = play40Bytes
+        // JSR $FC58 (HOME) at $0923 → JSR $09A2 (SETLORES)
+        b[0x24] = 0xA2
+        b[0x25] = 0x09
+        // FNAME tail "40" → "LO" (offsets $A0, $A1 = file bytes 0xA0, 0xA1)
+        b[0xA0] = 0x4C   // 'L'
+        b[0xA1] = 0x4F   // 'O'
+        // Append SETLORES at $09A2
+        b.append(contentsOf: [
+            0x8D, 0x50, 0xC0,    // STA $C050
+            0x8D, 0x52, 0xC0,    // STA $C052
+            0x8D, 0x56, 0xC0,    // STA $C056
+            0x8D, 0x54, 0xC0,    // STA $C054
+            0x60,                 // RTS
+        ])
+        return b
+    }()
+
+    // MARK: - Double-LORES (80 cols × 48 vert color blocks)
+    //
+    // Identical to `play80Bytes` except:
+    //   • The `JSR $C300` (slot-3 80-col-card init) at `$0923` is
+    //     swapped for `JSR $09C2` — a SETDLORES subroutine appended
+    //     after the text-mode player's FNAME.
+    //   • FNAME tail changes from "FRAMES80" to "FRAMESDL".
+    //
+    // SETDLORES (5 instructions, 16 bytes at $09C2):
+    //     JSR $C300  ; slot-3 init: turns on 80STORE + 80COL + ALTCHAR
+    //                ;             (puts us briefly in 80-col TEXT)
+    //     STA $C050  ; TEXT off → GR
+    //     STA $C052  ; MIXED off → FULL
+    //     STA $C056  ; HIRES off → LORES
+    //     STA $C05E  ; DHIRES on → DLORES
+    //     RTS
+    //
+    // Why JSR $C300 and not bare STA $C001: pure `80STORE` ON without
+    // `80COL` ON makes the LORES decoder fetch only MAIN bank and ignore
+    // AUX, which renders the 80-col DLORES output as a 40-col strip.
+    // $C300 sets all three display-side bits (80STORE + 80COL + ALTCHAR)
+    // in one shot — same call the working 80-col TEXT player uses.
+    //
+    // The AUX/MAIN copy loop in `play80Bytes` is reused verbatim — same
+    // PAGE2 toggle, same `$4000` staging buffer, same READ size.
+    static let playDloresBytes: [UInt8] = {
+        var b = play80Bytes
+        // JSR $C300 at $0923 → JSR $09C2 (SETDLORES)
+        b[0x24] = 0xC2
+        b[0x25] = 0x09
+        // FNAME tail "80" → "DL" (offsets 0xC0, 0xC1)
+        b[0xC0] = 0x44   // 'D'
+        b[0xC1] = 0x4C   // 'L'
+        // Append SETDLORES at $09C2
+        b.append(contentsOf: [
+            0x20, 0x00, 0xC3,    // JSR $C300 (80-col card init)
+            0x8D, 0x50, 0xC0,    // STA $C050 (TEXT off / GR on)
+            0x8D, 0x52, 0xC0,    // STA $C052 (MIXED off / FULL)
+            0x8D, 0x56, 0xC0,    // STA $C056 (HIRES off / LORES)
+            0x8D, 0x5E, 0xC0,    // STA $C05E (DHIRES on → DLORES)
+            0x60,                 // RTS
+        ])
+        return b
+    }()
+
     // MARK: - FPS delay calibration
 
     /// Inner delay loop (256 × DEX + DEY/BNE) costs ≈ 1.25 ms per outer

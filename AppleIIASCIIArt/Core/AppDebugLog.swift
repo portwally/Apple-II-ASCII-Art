@@ -34,10 +34,21 @@ final class AppDebugLog: ObservableObject {
     func clear() { lines.removeAll() }
 }
 
+/// Master kill-switch for the in-app debug log.
+///
+/// While `false`, `appLog(_:)` is a no-op (no Console output, no entries in
+/// `AppDebugLog.shared.lines`). The call sites throughout the pipeline are
+/// left intact so we can flip this back to `true` whenever we need to see
+/// what the extractor / converter is doing again. The debug-panel UI in
+/// `VideoConverterView` is also commented out alongside this — re-enable
+/// both together.
+private let appLogEnabled = false
+
 /// Thread-safe log function. Mirrors to Console **and** to the in-app
 /// debug panel. Use this in place of `print(...)` anywhere in the
 /// video pipeline.
 func appLog(_ line: String) {
+    guard appLogEnabled else { return }
     print(line)
     Task { @MainActor in
         AppDebugLog.shared.append(line)
